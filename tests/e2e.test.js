@@ -67,6 +67,17 @@ test('end-to-end: init, sync, protect, dry-run prune, prune, export', () => {
   const gitignoreContent = fs.readFileSync(path.join(project, '.gitignore'), 'utf8');
   assert.match(gitignoreContent, /myrules-backup/);
 
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'hooks', 'myrules-session-start-context.js')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'hooks.json')));
+  assert.ok(fs.existsSync(path.join(project, '.claude', 'rules', 'myrules-hook-session-start-context.md')));
+  assert.ok(fs.existsSync(path.join(opts.homeDir, '.cursor', 'hooks', 'myrules-session-log.js')));
+
+  const hooksConfig = JSON.parse(fs.readFileSync(path.join(project, '.cursor', 'hooks.json'), 'utf8'));
+  assert.deepStrictEqual(hooksConfig.hooks.sessionStart, [
+    { command: 'node .cursor/hooks/myrules-session-start-context.js' },
+  ]);
+  assert.match(gitignoreContent, /\.cursor\/hooks\/myrules-\*/);
+
   syncCli.run({ ...opts, dryRun: true, prune: true });
   syncCli.run({ ...opts, prune: true });
 
@@ -83,4 +94,14 @@ test('end-to-end: init, sync, protect, dry-run prune, prune, export', () => {
   fs.writeFileSync(editedFile, fs.readFileSync(editedFile, 'utf8').replace('write tests', 'write ALL the tests'));
   const report = exportLib.exportProject(cache, project, { claudeUserDir: opts.claudeUserDir });
   assert.ok(report.toUpdate.some((u) => u.deployedFile === editedFile));
+
+  fs.rmSync(path.join(cache, 'hooks', 'project', 'session-start-context.js'));
+  syncCli.run(opts);
+
+  assert.strictEqual(
+    fs.existsSync(path.join(project, '.cursor', 'hooks', 'myrules-session-start-context.js')),
+    false
+  );
+  const hooksConfigAfterRemoval = JSON.parse(fs.readFileSync(path.join(project, '.cursor', 'hooks.json'), 'utf8'));
+  assert.strictEqual(Object.prototype.hasOwnProperty.call(hooksConfigAfterRemoval.hooks, 'sessionStart'), false);
 });
