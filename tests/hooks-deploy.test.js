@@ -65,3 +65,14 @@ test('mergeHooksJson includes optional matcher/timeout/failClosed only when set'
     { command: 'node .cursor/hooks/myrules-a.js', matcher: 'curl' },
   ]);
 });
+
+test('mergeHooksJson appends multiple currentHooks for the same event', () => {
+  const result = mergeHooksJson(null, {}, [
+    { event: 'sessionStart', command: 'node .cursor/hooks/myrules-a.js' },
+    { event: 'sessionStart', command: 'node .cursor/hooks/myrules-b.js' },
+  ]);
+  assert.deepStrictEqual(result.hooks.sessionStart, [
+    { command: 'node .cursor/hooks/myrules-a.js' },
+    { command: 'node .cursor/hooks/myrules-b.js' },
+  ]);
+});
