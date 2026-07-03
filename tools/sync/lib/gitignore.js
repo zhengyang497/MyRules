@@ -12,6 +12,7 @@ function buildBlock(manifest) {
     MARKER,
     `.cursor/rules/${prefix}*`,
     `.claude/rules/${prefix}*`,
+    `.cursor/hooks/${prefix}*`,
     `${backupDir}/`,
     `${stateFile}`,
   ].join('\n');

@@ -38,3 +38,10 @@ test('ensureGitignore is idempotent — second call does not duplicate the block
   const occurrences = content.split('MyRules deploy artifacts').length - 1;
   assert.strictEqual(occurrences, 1);
 });
+
+test('ensureGitignore includes the MyRules-managed hook scripts pattern', () => {
+  const project = tmpProject();
+  gitignore.ensureGitignore(project, manifest);
+  const content = fs.readFileSync(path.join(project, '.gitignore'), 'utf8');
+  assert.match(content, /\.cursor\/hooks\/myrules-\*/);
+});
