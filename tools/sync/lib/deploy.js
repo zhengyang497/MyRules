@@ -3,6 +3,7 @@ const path = require('node:path');
 const paths = require('./paths');
 const fsutil = require('./fsutil');
 const transform = require('./transform');
+const loadManifest = require('./load-manifest');
 
 function listTopics(dir) {
   return fsutil.listFilesWithExt(dir, '.md').map((file) => ({
@@ -12,6 +13,11 @@ function listTopics(dir) {
 }
 
 function deployRules(cacheDir, projectRoot, opts = {}) {
+  const manifest = opts.manifest || loadManifest.loadManifest(cacheDir);
+  const prefix = manifest.managedPrefix;
+  const cursorExt = manifest.cursor.extension;
+  const claudeExt = manifest.claude.extension;
+
   const {
     force = false,
     priorHashes = {},
@@ -44,16 +50,16 @@ function deployRules(cacheDir, projectRoot, opts = {}) {
 
   for (const { file, topic } of listTopics(path.join(cacheDir, 'rules', 'user'))) {
     const body = fs.readFileSync(file, 'utf8');
-    const cursorTarget = path.join(cursorDir, `myrules-user-${topic}.mdc`);
-    const claudeTarget = path.join(claudeUserDir, `myrules-user-${topic}.md`);
+    const cursorTarget = path.join(cursorDir, `${prefix}user-${topic}${cursorExt}`);
+    const claudeTarget = path.join(claudeUserDir, `${prefix}user-${topic}${claudeExt}`);
     writeTracked(cursorTarget, transform.transformForCursor(body, topic), path.relative(projectRoot, cursorTarget));
-    writeTracked(claudeTarget, transform.transformForClaude(body), `~claude-user~/myrules-user-${topic}.md`);
+    writeTracked(claudeTarget, transform.transformForClaude(body), `~claude-user~/${prefix}user-${topic}${claudeExt}`);
   }
 
   for (const { file, topic } of listTopics(path.join(cacheDir, 'rules', 'project'))) {
     const body = fs.readFileSync(file, 'utf8');
-    const cursorTarget = path.join(cursorDir, `myrules-${topic}.mdc`);
-    const claudeTarget = path.join(claudeProjDir, `myrules-${topic}.md`);
+    const cursorTarget = path.join(cursorDir, `${prefix}${topic}${cursorExt}`);
+    const claudeTarget = path.join(claudeProjDir, `${prefix}${topic}${claudeExt}`);
     writeTracked(cursorTarget, transform.transformForCursor(body, topic), path.relative(projectRoot, cursorTarget));
     writeTracked(claudeTarget, transform.transformForClaude(body), path.relative(projectRoot, claudeTarget));
   }

@@ -7,9 +7,7 @@ const deploy = require('./lib/deploy');
 const legacy = require('./lib/legacy');
 const skills = require('./lib/skills');
 const registry = require('./lib/registry');
-
-const MANAGED_PREFIX = 'myrules-';
-const BACKUP_DIR = '.myrules-backup';
+const loadManifest = require('./lib/load-manifest');
 
 function parseArgs(argv) {
   const args = { dryRun: false, prune: false, project: null, all: false, force: false };
@@ -23,8 +21,19 @@ function parseArgs(argv) {
   return args;
 }
 
-function syncOne(cacheDir, projectRoot, opts) {
-  const legacyFiles = legacy.scanLegacy(projectRoot, MANAGED_PREFIX);
+function reportSkillResults(results) {
+  const failed = results.filter((r) => !r.ok);
+  if (!failed.length) return;
+  console.warn(`Skill sync failed for ${failed.length} target(s):`);
+  for (const r of failed) {
+    console.warn(`  ${r.name} → ${r.target}: ${r.error}`);
+  }
+}
+
+function syncOne(cacheDir, projectRoot, opts, manifest) {
+  const managedPrefix = manifest.managedPrefix;
+  const backupDir = manifest.prune.backupDir;
+  const legacyFiles = legacy.scanLegacy(projectRoot, managedPrefix, manifest);
   const fp = legacy.fingerprint(legacyFiles);
 
   if (opts.dryRun) {
@@ -46,6 +55,7 @@ function syncOne(cacheDir, projectRoot, opts) {
   const result = deploy.deployRules(cacheDir, projectRoot, {
     force: opts.force,
     priorHashes: current.deployedHashes,
+    manifest,
     ...(opts.claudeUserDir ? { claudeUserDir: opts.claudeUserDir } : {}),
   });
   if (result.drifted.length) {
@@ -60,7 +70,7 @@ function syncOne(cacheDir, projectRoot, opts) {
         "Refusing to prune: run with --dry-run --prune-legacy-rules first (legacy set changed or dry-run not done)."
       );
     }
-    const backupRoot = legacy.pruneLegacy(projectRoot, legacyFiles, BACKUP_DIR);
+    const backupRoot = legacy.pruneLegacy(projectRoot, legacyFiles, backupDir);
     console.log(`Archived ${legacyFiles.length} legacy file(s) to ${backupRoot}`);
     lastPruneAt = new Date().toISOString();
   }
@@ -78,8 +88,10 @@ function run(opts) {
   const cacheDir = opts.cacheDir || paths.getCacheDir();
   const homeDir = opts.homeDir || require('node:os').homedir();
   const fs = require('node:fs');
+  const manifest = loadManifest.loadManifest(cacheDir);
+
   if (!fs.existsSync(cacheDir)) {
-    throw new Error(`~/.myrules not found at ${cacheDir}. Clone it first: git clone <repo> "${cacheDir}"`);
+    throw new Error(`~/.myrules not found at ${cacheDir}. Clone it first: git clone ${manifest.repo} "${cacheDir}"`);
   }
 
   if (!opts.skipPull) {
@@ -89,18 +101,19 @@ function run(opts) {
     git.pullFastForward(cacheDir);
   }
   if (!opts.skipSkills) {
-    skills.syncSkills(cacheDir, {
+    const skillResults = skills.syncSkills(cacheDir, {
       cursorSkillsDir: paths.getCursorUserSkillsDir(homeDir),
       claudeSkillsDir: paths.getClaudeUserSkillsDir(homeDir),
     });
+    reportSkillResults(skillResults);
   }
 
   if (opts.all) {
     for (const p of registry.listRegisteredProjects(homeDir)) {
-      syncOne(cacheDir, p, opts);
+      syncOne(cacheDir, p, opts, manifest);
     }
   } else {
-    syncOne(cacheDir, paths.getProjectRoot(opts.project), opts);
+    syncOne(cacheDir, paths.getProjectRoot(opts.project), opts, manifest);
   }
 }
 
@@ -113,4 +126,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { run, parseArgs };
+module.exports = { run, parseArgs, reportSkillResults };

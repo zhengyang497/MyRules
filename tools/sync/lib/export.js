@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const paths = require('./paths');
 const transform = require('./transform');
+const loadManifest = require('./load-manifest');
 
 function diffFile(deployedFile, sourceFile, report) {
   if (!fs.existsSync(deployedFile)) return;
@@ -19,6 +20,9 @@ function diffFile(deployedFile, sourceFile, report) {
 }
 
 function exportProject(cacheDir, projectRoot, opts = {}) {
+  const manifest = opts.manifest || loadManifest.loadManifest(cacheDir);
+  const prefix = manifest.managedPrefix;
+  const userPrefix = `${prefix}user-`;
   const report = { toUpdate: [], sourceMissing: [] };
   const {
     cursorDir = paths.getCursorRulesDir(projectRoot),
@@ -27,19 +31,19 @@ function exportProject(cacheDir, projectRoot, opts = {}) {
   } = opts;
 
   const scans = [
-    { dir: cursorDir, ext: '.mdc' },
-    { dir: claudeProjDir, ext: '.md' },
-    { dir: claudeUserDir, ext: '.md' },
+    { dir: cursorDir, ext: manifest.cursor.extension },
+    { dir: claudeProjDir, ext: manifest.claude.extension },
+    { dir: claudeUserDir, ext: manifest.claude.extension },
   ];
 
   for (const { dir, ext } of scans) {
     if (!fs.existsSync(dir)) continue;
     for (const f of fs.readdirSync(dir)) {
-      if (!f.startsWith('myrules-') || !f.endsWith(ext)) continue;
+      if (!f.startsWith(prefix) || !f.endsWith(ext)) continue;
       const deployedFile = path.join(dir, f);
-      const isUser = f.startsWith('myrules-user-');
+      const isUser = f.startsWith(userPrefix);
       const withoutExt = path.basename(f, ext);
-      const topic = isUser ? withoutExt.replace(/^myrules-user-/, '') : withoutExt.replace(/^myrules-/, '');
+      const topic = isUser ? withoutExt.slice(userPrefix.length) : withoutExt.slice(prefix.length);
       const category = isUser ? 'user' : 'project';
       const sourceFile = path.join(cacheDir, 'rules', category, `${topic}.md`);
       diffFile(deployedFile, sourceFile, report);

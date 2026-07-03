@@ -5,6 +5,7 @@ const paths = require('./lib/paths');
 const gitignoreLib = require('./lib/gitignore');
 const registry = require('./lib/registry');
 const legacy = require('./lib/legacy');
+const loadManifest = require('./lib/load-manifest');
 const syncCli = require('./sync');
 
 function parseArgs(argv) {
@@ -19,11 +20,15 @@ function run(opts = {}) {
   const projectRoot = paths.getProjectRoot(opts.project);
   const cache = opts.cacheDir || paths.getCacheDir();
   const homeDir = opts.homeDir || os.homedir();
+  const manifest = loadManifest.loadManifest(cache);
 
-  gitignoreLib.ensureGitignore(projectRoot);
+  if (manifest.deploy.gitignoreDeployArtifacts) {
+    gitignoreLib.ensureGitignore(projectRoot, manifest);
+  }
+
   registry.registerProject(projectRoot, homeDir);
 
-  const legacyFiles = legacy.scanLegacy(projectRoot, 'myrules-');
+  const legacyFiles = legacy.scanLegacy(projectRoot, manifest.managedPrefix, manifest);
   if (legacyFiles.length) {
     console.log(`Detected ${legacyFiles.length} legacy rule file(s) not managed by MyRules:`);
     legacyFiles.forEach((f) => console.log(`  ${f}`));

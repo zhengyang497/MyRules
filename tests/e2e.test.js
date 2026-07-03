@@ -18,6 +18,7 @@ function makeCacheRepo() {
   fs.mkdirSync(path.join(cache, 'rules', 'project'), { recursive: true });
   fs.writeFileSync(path.join(cache, 'rules', 'user', 'preferences.md'), '# Preferences\n\n- be concise');
   fs.writeFileSync(path.join(cache, 'rules', 'project', 'testing.md'), '# Testing\n\n- write tests');
+  fs.copyFileSync(path.join(__dirname, '..', 'manifest.js'), path.join(cache, 'manifest.js'));
   fs.writeFileSync(path.join(cache, 'skills-manifest.js'), 'module.exports = { skills: [] };\n');
   run(cache, ['init']);
   run(cache, ['config', 'user.email', 'test@example.com']);

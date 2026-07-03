@@ -13,14 +13,16 @@ function walkAll(dir) {
   return out;
 }
 
-function scanLegacy(projectRoot, managedPrefix) {
+function scanLegacy(projectRoot, managedPrefix, manifest = {}) {
+  const cursorExt = manifest.cursor?.extension || '.mdc';
+  const claudeExt = manifest.claude?.extension || '.md';
   const found = [];
 
   const cursorDir = paths.getCursorRulesDir(projectRoot);
   if (fs.existsSync(cursorDir)) {
     for (const f of fs.readdirSync(cursorDir)) {
       const full = path.join(cursorDir, f);
-      if (fs.statSync(full).isFile() && f.endsWith('.mdc') && !f.startsWith(managedPrefix)) {
+      if (fs.statSync(full).isFile() && f.endsWith(cursorExt) && !f.startsWith(managedPrefix)) {
         found.push(full);
       }
     }
@@ -34,7 +36,7 @@ function scanLegacy(projectRoot, managedPrefix) {
   if (fs.existsSync(claudeDir)) {
     for (const f of fs.readdirSync(claudeDir)) {
       const full = path.join(claudeDir, f);
-      if (fs.statSync(full).isFile() && f.endsWith('.md') && !f.startsWith(managedPrefix)) {
+      if (fs.statSync(full).isFile() && f.endsWith(claudeExt) && !f.startsWith(managedPrefix)) {
         found.push(full);
       }
     }
