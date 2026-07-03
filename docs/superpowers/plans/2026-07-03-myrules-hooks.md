@@ -502,8 +502,22 @@ test('handle appends a second line without overwriting the first', () => {
 });
 
 test('handle falls back to os.homedir() when no homeDir override is given', () => {
-  const result = hook.handle({ workspace_roots: ['/x'], duration_ms: 1, reason: 'completed' });
-  assert.deepStrictEqual(result, {});
+  const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-hook-home-'));
+  const prevHome = process.env.HOME;
+  const prevUserProfile = process.env.USERPROFILE;
+  process.env.HOME = fakeHome;
+  process.env.USERPROFILE = fakeHome;
+  try {
+    const result = hook.handle({ workspace_roots: ['/x'], duration_ms: 1, reason: 'completed' });
+    assert.deepStrictEqual(result, {});
+    const logContent = fs.readFileSync(path.join(fakeHome, 'myrules-activity-log.md'), 'utf8');
+    assert.match(logContent, /completed/);
+  } finally {
+    if (prevHome === undefined) delete process.env.HOME;
+    else process.env.HOME = prevHome;
+    if (prevUserProfile === undefined) delete process.env.USERPROFILE;
+    else process.env.USERPROFILE = prevUserProfile;
+  }
 });
 ```
 
@@ -548,8 +562,6 @@ if (require.main === module) {
   });
 }
 ```
-
-Note: the last test (`falls back to os.homedir()`) actually appends a line to the *real* home directory's `myrules-activity-log.md`. This is intentional — it's the one place in the whole suite that deliberately exercises the true production default. Confirm this in step 8, and know it's expected (harmless: it only appends one extra timestamped line to that file, never deletes or overwrites anything).
 
 - [ ] **Step 8: Run test to verify it passes**
 
