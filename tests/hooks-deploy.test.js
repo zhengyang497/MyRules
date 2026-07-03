@@ -211,10 +211,13 @@ test('deployProjectHooks aborts with a clear error when hooks.json is malformed'
   fs.mkdirSync(path.join(project, '.cursor'), { recursive: true });
   fs.writeFileSync(path.join(project, '.cursor', 'hooks.json'), '{ not valid json');
 
+  const scriptFile = path.join(project, '.cursor', 'hooks', 'myrules-session-start-context.js');
+
   assert.throws(
     () => hooksDeploy.deployProjectHooks(cache, project, { manifest: fakeManifest, priorState: {} }),
     /Failed to parse/
   );
+  assert.strictEqual(fs.existsSync(scriptFile), false);
 });
 
 test('deployUserHooks writes to the given homeDir-relative Cursor and Claude locations', () => {

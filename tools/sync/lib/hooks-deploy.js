@@ -65,6 +65,9 @@ function deployHooks({ sourceDir, scriptsDir, configFile, commandDirPosix, claud
     return { deployedHooks: {}, deployedHashes: {}, drifted: [], stale: [] };
   }
 
+  const configFileExisted = fs.existsSync(configFile);
+  const existingConfig = readJsonIfExists(configFile);
+
   fsutil.ensureDir(scriptsDir);
   fsutil.ensureDir(claudeDir);
 
@@ -103,8 +106,6 @@ function deployHooks({ sourceDir, scriptsDir, configFile, commandDirPosix, claud
     previousCommandsByEvent[info.event].push(info.command);
   }
 
-  const configFileExisted = fs.existsSync(configFile);
-  const existingConfig = readJsonIfExists(configFile);
   const nextConfig = mergeHooksJson(existingConfig, previousCommandsByEvent, currentHooks);
   if (configFileExisted || Object.keys(nextConfig.hooks).length > 0) {
     fs.writeFileSync(configFile, JSON.stringify(nextConfig, null, 2) + '\n');
