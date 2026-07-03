@@ -40,3 +40,12 @@ test('writeState persists nested deployedHashes object', () => {
   const s = state.readState(project);
   assert.deepStrictEqual(s.deployedHashes, { 'a.mdc': 'hash1' });
 });
+
+test('writeState persists nested deployedHooks object', () => {
+  const project = tmpProject();
+  state.writeState(project, {
+    deployedHooks: { 'session-start-context': { event: 'sessionStart', command: 'node x' } },
+  });
+  const s = state.readState(project);
+  assert.deepStrictEqual(s.deployedHooks, { 'session-start-context': { event: 'sessionStart', command: 'node x' } });
+});

@@ -12,6 +12,7 @@ const DEFAULT_STATE = {
   legacyRulesFingerprint: null,
   legacyRulesDetected: 0,
   deployedHashes: {},
+  deployedHooks: {},
 };
 
 function readState(projectRoot) {
