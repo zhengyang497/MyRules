@@ -5,6 +5,7 @@ const path = require('node:path');
 const os = require('node:os');
 const { execFileSync } = require('node:child_process');
 const syncCli = require('../tools/sync/sync');
+const installSkillCli = require('../tools/sync/install-skill');
 
 function run(cwd, args) {
   execFileSync('git', args, { cwd, stdio: 'ignore' });
@@ -37,6 +38,10 @@ function makeCacheRepo() {
 test('sync.run warns when skill sync fails but still deploys rules', () => {
   const cache = makeCacheRepo();
   const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-sync-project-'));
+  installSkillCli.run({
+    project,
+    sourceDir: installSkillCli.getBundledRepoRoot(),
+  });
   const warnings = [];
   const originalWarn = console.warn;
   console.warn = (...args) => warnings.push(args.join(' '));
@@ -62,16 +67,21 @@ test('sync.run warns when skill sync fails but still deploys rules', () => {
   assert.ok(warnings.some((w) => w.includes('broken-skill')));
 });
 
-test('sync.run missing cache error includes manifest.repo URL', () => {
-  const missing = path.join(os.tmpdir(), `myrules-missing-${Date.now()}`);
-  assert.throws(
-    () =>
-      syncCli.run({
-        project: process.cwd(),
-        cacheDir: missing,
-        skipPull: true,
-        skipSkills: true,
-      }),
-    (err) => err.message.includes('https://github.com/zhengyang497/MyRules.git')
-  );
+test('sync.run clones cache when cache dir is missing', () => {
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-sync-autoclone-'));
+  installSkillCli.run({
+    project,
+    sourceDir: installSkillCli.getBundledRepoRoot(),
+  });
+  const cache = path.join(os.tmpdir(), `myrules-autoclone-${Date.now()}`);
+  syncCli.run({
+    project,
+    cacheDir: cache,
+    skipPull: true,
+    skipSkills: true,
+    claudeUserDir: path.join(project, '.fake-claude-home', 'rules'),
+    homeDir: path.join(project, '.fake-home'),
+  });
+  assert.ok(fs.existsSync(cache));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-testing.mdc')));
 });

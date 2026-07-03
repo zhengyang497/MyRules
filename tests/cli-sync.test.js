@@ -5,6 +5,7 @@ const path = require('node:path');
 const os = require('node:os');
 const { execFileSync } = require('node:child_process');
 const syncCli = require('../tools/sync/sync');
+const installSkillCli = require('../tools/sync/install-skill');
 const state = require('../tools/sync/lib/state');
 const { seedCacheContent } = require('./helpers/cache-seed');
 
@@ -26,6 +27,13 @@ function makeCacheRepo() {
   return cache;
 }
 
+function installSkill(project) {
+  installSkillCli.run({
+    project,
+    sourceDir: installSkillCli.getBundledRepoRoot(),
+  });
+}
+
 function baseOpts(project, cache) {
   return {
     project,
@@ -43,6 +51,7 @@ function baseOpts(project, cache) {
 test('sync.run deploys rules and writes sync state with the cache commit', () => {
   const cache = makeCacheRepo();
   const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-sync-project-'));
+  installSkill(project);
 
   syncCli.run(baseOpts(project, cache));
 
@@ -55,6 +64,7 @@ test('sync.run deploys rules and writes sync state with the cache commit', () =>
 test('sync.run --dry-run --prune-legacy-rules records a fingerprint without writing files', () => {
   const cache = makeCacheRepo();
   const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-sync-project-'));
+  installSkill(project);
   fs.mkdirSync(path.join(project, '.cursor', 'rules'), { recursive: true });
   fs.writeFileSync(path.join(project, '.cursor', 'rules', 'old.mdc'), 'legacy');
 
@@ -69,6 +79,7 @@ test('sync.run --dry-run --prune-legacy-rules records a fingerprint without writ
 test('sync.run --prune-legacy-rules refuses without a matching prior dry-run', () => {
   const cache = makeCacheRepo();
   const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-sync-project-'));
+  installSkill(project);
   fs.mkdirSync(path.join(project, '.cursor', 'rules'), { recursive: true });
   fs.writeFileSync(path.join(project, '.cursor', 'rules', 'old.mdc'), 'legacy');
 
@@ -80,6 +91,7 @@ test('sync.run --prune-legacy-rules refuses without a matching prior dry-run', (
 test('sync.run --prune-legacy-rules archives legacy files after a matching dry-run', () => {
   const cache = makeCacheRepo();
   const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-sync-project-'));
+  installSkill(project);
   fs.mkdirSync(path.join(project, '.cursor', 'rules'), { recursive: true });
   fs.writeFileSync(path.join(project, '.cursor', 'rules', 'old.mdc'), 'legacy');
 
@@ -94,6 +106,7 @@ test('sync.run --prune-legacy-rules archives legacy files after a matching dry-r
 test('status.run reports cache dirty state and current sync state together', () => {
   const cache = makeCacheRepo();
   const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-sync-project-'));
+  installSkill(project);
   syncCli.run(baseOpts(project, cache));
 
   const statusCli = require('../tools/sync/status');

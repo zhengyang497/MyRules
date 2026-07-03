@@ -7,7 +7,7 @@ requirements) and a skill manifest, synced across devices, platforms
 ## First use in a project
 
 MyRules uses **two steps**. Step 1 must happen before the Agent understands
-phrases like「init my rules」.
+phrases like「sync my rules」.
 
 ### Step 1 — Import MyRules skill (natural language)
 
@@ -16,7 +16,7 @@ Ask the Agent:
 > **「从 GitHub 安装 MyRules skill」**  
 > **「导入 MyRules，仓库是 zhengyang497/MyRules」**
 
-Do **not** start with「init my rules」— without the skill, Agent does not know
+Do **not** start with「sync my rules」— without the skill, Agent does not know
 that command.
 
 The Agent should shallow-clone this repo and run:
@@ -29,15 +29,16 @@ This only installs `.cursor/skills/myrules/` (and `.claude/skills/myrules/` when
 applicable). **Commit** those paths to git so teammates share the same Agent
 entry.
 
-### Step 2 — Init rules (MyRules commands)
+### Step 2 — Sync rules (first time and every time after)
 
 After the skill is in the project, ask the Agent:
 
-> **「init my rules」**  
-> **「初始化我的规则」**
+> **「sync my rules」**  
+> **「同步我的规则」**
 
-The Agent runs `init.js`, which clones `~/.myrules/` if needed, deploys rules,
-and registers the project.
+The Agent runs `sync.js` (from `~/.myrules/` if it exists, otherwise from the
+same GitHub clone used in step 1), which clones `~/.myrules/` if needed, deploys
+rules, and registers the project. The same phrase updates rules on every later run.
 
 If the user says **「帮我设置 MyRules」** in one sentence, the Agent should still
 do step 1 then step 2 in order.
@@ -52,8 +53,7 @@ The same `node` invocations work on Windows (PowerShell) and macOS/Linux
 | User intent | Command |
 |-------------|---------|
 | Import MyRules skill into a project (step 1) | `node "<myrules-clone>/tools/sync/install-skill.js" --project "<workspace>"` |
-| Init rules in a project (step 2) | `node "$HOME/.myrules/tools/sync/init.js" --project "<workspace>"` |
-| Sync latest rules into this project | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>"` |
+| Sync rules into a project (first time or update) | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>"` — or from a clone when `~/.myrules/` does not exist yet |
 | Sync every known project on this machine | `node "$HOME/.myrules/tools/sync/sync.js" --all` |
 | Take over an old project's rules | 1) dry-run: `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --dry-run --prune-legacy-rules`, review the listed files, then 2) `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --prune-legacy-rules` |
 | Force-overwrite a locally-edited myrules-* file | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --force` |

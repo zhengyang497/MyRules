@@ -5,6 +5,7 @@ const path = require('node:path');
 const os = require('node:os');
 const { execFileSync } = require('node:child_process');
 const installSkillCli = require('../tools/sync/install-skill');
+const syncCli = require('../tools/sync/sync');
 const initCli = require('../tools/sync/init');
 const { seedCacheContent } = require('./helpers/cache-seed');
 
@@ -25,29 +26,29 @@ function makeCacheRepo() {
   return cache;
 }
 
-test('install-skill.run installs project skill without deploying rules', () => {
-  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-install-project-'));
-
+function installSkill(project) {
   installSkillCli.run({
     project,
     sourceDir: installSkillCli.getBundledRepoRoot(),
   });
+}
+
+test('install-skill.run installs project skill without deploying rules', () => {
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-install-project-'));
+
+  installSkill(project);
 
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'skills', 'myrules', 'SKILL.md')));
   assert.ok(fs.existsSync(path.join(project, '.claude', 'skills', 'myrules', 'SKILL.md')));
   assert.strictEqual(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-testing.mdc')), false);
 });
 
-test('init.run deploys rules when skill is already installed', () => {
+test('sync.run deploys rules when skill is already installed', () => {
   const cache = makeCacheRepo();
-  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-init-project-'));
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-sync-project-'));
 
-  installSkillCli.run({
-    project,
-    sourceDir: installSkillCli.getBundledRepoRoot(),
-  });
-
-  initCli.run({
+  installSkill(project);
+  syncCli.run({
     project,
     cacheDir: cache,
     skipPull: true,
@@ -59,13 +60,13 @@ test('init.run deploys rules when skill is already installed', () => {
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-testing.mdc')));
 });
 
-test('init.run refuses when project skill is missing', () => {
+test('sync.run refuses when project skill is missing', () => {
   const cache = makeCacheRepo();
-  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-init-no-skill-'));
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-sync-no-skill-'));
 
   assert.throws(
     () =>
-      initCli.run({
+      syncCli.run({
         project,
         cacheDir: cache,
         skipPull: true,
@@ -74,4 +75,21 @@ test('init.run refuses when project skill is missing', () => {
       }),
     /MyRules skill is not installed/
   );
+});
+
+test('init.js remains a backward-compatible alias for sync', () => {
+  const cache = makeCacheRepo();
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-init-alias-'));
+
+  installSkill(project);
+  initCli.run({
+    project,
+    cacheDir: cache,
+    skipPull: true,
+    skipSkills: true,
+    claudeUserDir: path.join(project, '.fake-claude-home', 'rules'),
+    homeDir: path.join(project, '.fake-home'),
+  });
+
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-testing.mdc')));
 });

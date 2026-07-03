@@ -8,6 +8,8 @@ const legacy = require('./lib/legacy');
 const skills = require('./lib/skills');
 const registry = require('./lib/registry');
 const loadManifest = require('./lib/load-manifest');
+const ensureCache = require('./lib/ensure-cache');
+const prepareProject = require('./lib/prepare-project');
 
 function parseArgs(argv) {
   const args = { dryRun: false, prune: false, project: null, all: false, force: false };
@@ -85,13 +87,16 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
 }
 
 function run(opts) {
-  const cacheDir = opts.cacheDir || paths.getCacheDir();
+  let cacheDir = opts.cacheDir || paths.getCacheDir();
   const homeDir = opts.homeDir || require('node:os').homedir();
-  const fs = require('node:fs');
-  const manifest = loadManifest.loadManifest(cacheDir);
 
-  if (!fs.existsSync(cacheDir)) {
-    throw new Error(`~/.myrules not found at ${cacheDir}. Clone it first: git clone ${manifest.repo} "${cacheDir}"`);
+  let manifest = loadManifest.loadManifest(cacheDir);
+  if (!opts.skipEnsureCache) {
+    const cacheResult = ensureCache.ensureCache(cacheDir, manifest);
+    if (cacheResult.created) {
+      console.log(`Cloned MyRules cache to ${cacheDir}`);
+      manifest = loadManifest.loadManifest(cacheDir);
+    }
   }
 
   if (!opts.skipPull) {
@@ -113,7 +118,11 @@ function run(opts) {
       syncOne(cacheDir, p, opts, manifest);
     }
   } else {
-    syncOne(cacheDir, paths.getProjectRoot(opts.project), opts, manifest);
+    const projectRoot = paths.getProjectRoot(opts.project);
+    if (!opts.skipPrepare) {
+      prepareProject.prepareProject(projectRoot, cacheDir, manifest);
+    }
+    syncOne(cacheDir, projectRoot, opts, manifest);
   }
 }
 

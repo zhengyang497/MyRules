@@ -1,9 +1,14 @@
 #!/usr/bin/env node
-// Alias for init.js (rules deploy only — install skill first via install-skill.js).
-const init = require('./init');
+// Deprecated alias — use sync.js.
+const sync = require('./sync');
 
 if (require.main === module) {
-  init.run(init.parseArgs(process.argv.slice(2)));
+  try {
+    sync.run(sync.parseArgs(process.argv.slice(2)));
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
 }
 
-module.exports = init;
+module.exports = sync;
