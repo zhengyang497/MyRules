@@ -18,20 +18,6 @@ function parseArgs(argv) {
   return { project };
 }
 
-function logSkillResult(result, manifest) {
-  if (result.installed.length) {
-    console.log(`Installed MyRules skill (${result.installed.length}):`);
-    result.installed.forEach((p) => console.log(`  ${p}`));
-    if (manifest.bootstrap?.commitSkillToGit !== false) {
-      console.log('Commit .cursor/skills/myrules/ (and .claude/skills/myrules/ if present) to git.');
-    }
-  }
-  if (result.updated.length) {
-    console.log(`Updated MyRules skill (${result.updated.length}):`);
-    result.updated.forEach((p) => console.log(`  ${p}`));
-  }
-}
-
 function run(opts = {}) {
   const projectRoot = paths.getProjectRoot(opts.project);
   let cache = opts.cacheDir || paths.getCacheDir();
@@ -44,8 +30,12 @@ function run(opts = {}) {
     manifest = loadManifest.loadManifest(cache);
   }
 
-  const skillResult = projectSkill.ensureProjectSkill(projectRoot, cache, manifest);
-  logSkillResult(skillResult, manifest);
+  if (!projectSkill.isProjectSkillInstalled(projectRoot, manifest)) {
+    throw new Error(
+      'MyRules skill is not installed in this project. Import it from GitHub first ' +
+        `(run install-skill.js, or ask the Agent to install MyRules from ${manifest.repo}).`
+    );
+  }
 
   if (manifest.deploy.gitignoreDeployArtifacts) {
     gitignoreLib.ensureGitignore(projectRoot, manifest);
@@ -65,7 +55,12 @@ function run(opts = {}) {
 }
 
 if (require.main === module) {
-  run(parseArgs(process.argv.slice(2)));
+  try {
+    run(parseArgs(process.argv.slice(2)));
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
 }
 
-module.exports = { run, parseArgs, logSkillResult };
+module.exports = { run, parseArgs };

@@ -4,20 +4,43 @@ Personal AI rules (preferences, prohibitions, output standards, testing/behavior
 requirements) and a skill manifest, synced across devices, platforms
 (Cursor + Claude), and projects via this GitHub repo.
 
-## Setup on a new machine
+## First use in a project
+
+MyRules uses **two steps**. Step 1 must happen before the Agent understands
+phrases like「init my rules」.
+
+### Step 1 — Import MyRules skill (natural language)
+
+Ask the Agent:
+
+> **「从 GitHub 安装 MyRules skill」**  
+> **「导入 MyRules，仓库是 zhengyang497/MyRules」**
+
+Do **not** start with「init my rules」— without the skill, Agent does not know
+that command.
+
+The Agent should shallow-clone this repo and run:
 
 ```sh
-git clone https://github.com/zhengyang497/MyRules.git ~/.myrules
+node "<clone>/tools/sync/install-skill.js" --project "<workspace>"
 ```
 
-## Use in a project
+This only installs `.cursor/skills/myrules/` (and `.claude/skills/myrules/` when
+applicable). **Commit** those paths to git so teammates share the same Agent
+entry.
 
-Ask the Agent to **「init my rules」** or **「帮我设置 MyRules」**. The `init`
-script clones `~/.myrules/` if needed, installs `.cursor/skills/myrules/`,
-deploys rules, and registers the project — one step, no manual copy.
+### Step 2 — Init rules (MyRules commands)
 
-**Commit** `.cursor/skills/myrules/` (and `.claude/skills/myrules/` if present)
-to git so teammates share the same Agent entry.
+After the skill is in the project, ask the Agent:
+
+> **「init my rules」**  
+> **「初始化我的规则」**
+
+The Agent runs `init.js`, which clones `~/.myrules/` if needed, deploys rules,
+and registers the project.
+
+If the user says **「帮我设置 MyRules」** in one sentence, the Agent should still
+do step 1 then step 2 in order.
 
 See `skills/myrules/SKILL.md` for the full agent-oriented command reference.
 
@@ -28,7 +51,8 @@ The same `node` invocations work on Windows (PowerShell) and macOS/Linux
 
 | User intent | Command |
 |-------------|---------|
-| Set up a new project | `node "$HOME/.myrules/tools/sync/init.js" --project "<workspace>"` |
+| Import MyRules skill into a project (step 1) | `node "<myrules-clone>/tools/sync/install-skill.js" --project "<workspace>"` |
+| Init rules in a project (step 2) | `node "$HOME/.myrules/tools/sync/init.js" --project "<workspace>"` |
 | Sync latest rules into this project | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>"` |
 | Sync every known project on this machine | `node "$HOME/.myrules/tools/sync/sync.js" --all` |
 | Take over an old project's rules | 1) dry-run: `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --dry-run --prune-legacy-rules`, review the listed files, then 2) `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --prune-legacy-rules` |

@@ -6,15 +6,57 @@ description: Sync personal AI rules and skills from ~/.myrules/ to Cursor and Cl
 # MyRules
 
 NEVER deploy or edit rule files by hand. ALWAYS run the scripts in
-`~/.myrules/tools/sync/`. The same command works on Windows (PowerShell) and
-macOS/Linux (bash/zsh) — both expand `$HOME`, so no OS branch is needed.
+`~/.myrules/tools/sync/` (or from a MyRules repo checkout / shallow clone).
+The same command works on Windows (PowerShell) and macOS/Linux (bash/zsh) — both
+expand `$HOME`, so no OS branch is needed.
 
-## Commands
+## First use in a project (two steps)
+
+MyRules-specific phrases like **「init my rules」** only work **after** this skill
+is installed in the project. On a brand-new project, follow both steps in order.
+
+### Step 1 — Import MyRules from GitHub (natural language)
+
+The user says something like **「从 GitHub 安装 MyRules skill」** or **「导入
+MyRules」**. They should **not** say「init my rules」yet — without this skill,
+Agent does not know that phrase.
+
+Agent actions (no `~/.myrules` required):
+
+1. Shallow-clone `https://github.com/zhengyang497/MyRules.git` (or use an
+   existing checkout).
+2. Run:
+   `node "<clone>/tools/sync/install-skill.js" --project "<workspace>"`
+3. Remind the user to **commit** `.cursor/skills/myrules/` (and
+   `.claude/skills/myrules/` if present) to git.
+
+`install-skill.js` only installs this skill file into the project. It does **not**
+clone `~/.myrules/` or deploy rules.
+
+### Step 2 — Init rules (MyRules commands)
+
+After the skill is loaded, the user says **「init my rules」** or **「初始化我的
+规则」**.
+
+Run:
+
+`node "$HOME/.myrules/tools/sync/init.js" --project "<workspace>"`
+
+If `~/.myrules/` does not exist yet, `init.js` clones it from GitHub, then
+deploys rules and registers the project. It does **not** install the project
+skill (that was step 1).
+
+### Optional one sentence
+
+If the user says **「帮我设置 MyRules」** in one breath, Agent should still do
+**step 1 then step 2** in order — import the skill first, then run `init.js`.
+
+## Commands (skill already installed)
 
 | User intent | Command |
 |-------------|---------|
-| **First-time / set up MyRules** (project skill not installed yet is OK) | `node "$HOME/.myrules/tools/sync/init.js" --project "<workspace>"` (or `bootstrap.js` — same behavior) |
-| Set up / init this project | `node "$HOME/.myrules/tools/sync/init.js" --project "<workspace>"` |
+| Import / install MyRules skill from GitHub (step 1) | `node "<myrules-clone>/tools/sync/install-skill.js" --project "<workspace>"` |
+| Init rules in this project (step 2) | `node "$HOME/.myrules/tools/sync/init.js" --project "<workspace>"` |
 | Sync latest rules into this project | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>"` |
 | Sync every known project on this machine | `node "$HOME/.myrules/tools/sync/sync.js" --all` |
 | Take over an old project's rules | 1) dry-run: `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --dry-run --prune-legacy-rules`, review the listed files, then 2) `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --prune-legacy-rules` |
@@ -22,19 +64,6 @@ macOS/Linux (bash/zsh) — both expand `$HOME`, so no OS branch is needed.
 | See what changed locally vs the cache | `node "$HOME/.myrules/tools/sync/export.js" --project "<workspace>"` |
 | Publish rule edits made in `~/.myrules/` | `node "$HOME/.myrules/tools/sync/push.js" -m "describe the change"` |
 | Check sync status | `node "$HOME/.myrules/tools/sync/status.js" --project "<workspace>"` |
-
-`init.js` automatically: clones `~/.myrules/` if missing, installs this skill into `.cursor/skills/myrules/` (and `.claude/skills/myrules/` when applicable), deploys rules, and registers the project. **Do not hand-copy SKILL.md** — always use `init.js`.
-
-## If `~/.myrules/` does not exist yet (pre-skill fallback)
-
-When this skill is **not** yet loaded in the project and the user asks to set up MyRules:
-
-1. Clone: `git clone https://github.com/zhengyang497/MyRules.git "$HOME/.myrules"` (or read `manifest.repo` from the repo if you have a checkout)
-2. Run: `node "$HOME/.myrules/tools/sync/init.js" --project "<workspace>"`
-
-Step 2 installs this skill file into the project and deploys rules. After that, normal skill-driven commands apply.
-
-When `init` installs the skill for the first time, remind the user to **commit** `.cursor/skills/myrules/` (and `.claude/skills/myrules/` if present) to git so teammates get the same Agent entry.
 
 ## Protect — never read, write, or delete these
 

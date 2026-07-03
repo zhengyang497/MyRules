@@ -69,4 +69,29 @@ function ensureProjectSkill(projectRoot, cacheDir, manifest) {
   return result;
 }
 
-module.exports = { ensureProjectSkill, destinationPaths, getDefaults };
+function isProjectSkillInstalled(projectRoot, manifest) {
+  const dests = destinationPaths(projectRoot, manifest);
+  return dests.length > 0 && dests.every((d) => fs.existsSync(d.path));
+}
+
+function logSkillInstallResult(result, manifest) {
+  if (result.installed.length) {
+    console.log(`Installed MyRules skill (${result.installed.length}):`);
+    result.installed.forEach((p) => console.log(`  ${p}`));
+    if (manifest.bootstrap?.commitSkillToGit !== false) {
+      console.log('Commit .cursor/skills/myrules/ (and .claude/skills/myrules/ if present) to git.');
+    }
+  }
+  if (result.updated.length) {
+    console.log(`Updated MyRules skill (${result.updated.length}):`);
+    result.updated.forEach((p) => console.log(`  ${p}`));
+  }
+}
+
+module.exports = {
+  ensureProjectSkill,
+  destinationPaths,
+  getDefaults,
+  isProjectSkillInstalled,
+  logSkillInstallResult,
+};

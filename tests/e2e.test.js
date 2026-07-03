@@ -5,6 +5,7 @@ const path = require('node:path');
 const os = require('node:os');
 const { execFileSync } = require('node:child_process');
 const initCli = require('../tools/sync/init');
+const installSkillCli = require('../tools/sync/install-skill');
 const syncCli = require('../tools/sync/sync');
 const exportLib = require('../tools/sync/lib/export');
 const { seedCacheContent } = require('./helpers/cache-seed');
@@ -53,6 +54,10 @@ test('end-to-end: init, sync, protect, dry-run prune, prune, export', () => {
     homeDir: path.join(project, '.fake-home'),
   };
 
+  installSkillCli.run({
+    project,
+    sourceDir: installSkillCli.getBundledRepoRoot(),
+  });
   initCli.run(opts);
 
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'skills', 'myrules', 'SKILL.md')));

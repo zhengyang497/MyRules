@@ -52,6 +52,15 @@ test('ensureProjectSkill updates when cache skill content changes', () => {
   );
 });
 
+test('isProjectSkillInstalled is false before install and true after', () => {
+  const cache = makeCache();
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-proj-skill-project-'));
+
+  assert.strictEqual(projectSkill.isProjectSkillInstalled(project, manifest), false);
+  projectSkill.ensureProjectSkill(project, cache, manifest);
+  assert.strictEqual(projectSkill.isProjectSkillInstalled(project, manifest), true);
+});
+
 test('ensureProjectSkill respects cursor-only platforms', () => {
   const cache = makeCache();
   const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-proj-skill-project-'));

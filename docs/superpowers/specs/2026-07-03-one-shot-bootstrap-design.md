@@ -1,7 +1,7 @@
 # One-Shot Bootstrap Design
 
 **Date:** 2026-07-03  
-**Status:** Approved (2026-07-03)  
+**Status:** Superseded (2026-07-03) — replaced by two-step flow: `install-skill.js` (step 1) then `init.js` (step 2). See `skills/myrules/SKILL.md` and `README.md`.  
 **Scope:** Let a user say one sentence to Agent and have MyRules fully set up (cache + project skill + rules deploy)
 
 ## Problem
