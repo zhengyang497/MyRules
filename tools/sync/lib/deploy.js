@@ -4,6 +4,7 @@ const paths = require('./paths');
 const fsutil = require('./fsutil');
 const transform = require('./transform');
 const loadManifest = require('./load-manifest');
+const drift = require('./drift');
 
 function listTopics(dir) {
   return fsutil.listFilesWithExt(dir, '.md').map((file) => ({
@@ -29,42 +30,25 @@ function deployRules(cacheDir, projectRoot, opts = {}) {
   fsutil.ensureDir(claudeProjDir);
   fsutil.ensureDir(claudeUserDir);
 
-  const nextHashes = {};
-  const drifted = [];
-  const written = [];
-
-  function writeTracked(targetFile, content, stateKey) {
-    if (!force && fs.existsSync(targetFile)) {
-      const currentHash = fsutil.hashContent(fs.readFileSync(targetFile, 'utf8'));
-      const expectedHash = priorHashes[stateKey];
-      if (expectedHash && currentHash !== expectedHash) {
-        drifted.push(targetFile);
-        nextHashes[stateKey] = currentHash;
-        return;
-      }
-    }
-    fs.writeFileSync(targetFile, content);
-    nextHashes[stateKey] = fsutil.hashContent(content);
-    written.push(targetFile);
-  }
+  const tracker = drift.createTracker({ force, priorHashes });
 
   for (const { file, topic } of listTopics(path.join(cacheDir, 'rules', 'user'))) {
     const body = fs.readFileSync(file, 'utf8');
     const cursorTarget = path.join(cursorDir, `${prefix}user-${topic}${cursorExt}`);
     const claudeTarget = path.join(claudeUserDir, `${prefix}user-${topic}${claudeExt}`);
-    writeTracked(cursorTarget, transform.transformForCursor(body, topic), path.relative(projectRoot, cursorTarget));
-    writeTracked(claudeTarget, transform.transformForClaude(body), `~claude-user~/${prefix}user-${topic}${claudeExt}`);
+    tracker.writeTracked(cursorTarget, transform.transformForCursor(body, topic), path.relative(projectRoot, cursorTarget));
+    tracker.writeTracked(claudeTarget, transform.transformForClaude(body), `~claude-user~/${prefix}user-${topic}${claudeExt}`);
   }
 
   for (const { file, topic } of listTopics(path.join(cacheDir, 'rules', 'project'))) {
     const body = fs.readFileSync(file, 'utf8');
     const cursorTarget = path.join(cursorDir, `${prefix}${topic}${cursorExt}`);
     const claudeTarget = path.join(claudeProjDir, `${prefix}${topic}${claudeExt}`);
-    writeTracked(cursorTarget, transform.transformForCursor(body, topic), path.relative(projectRoot, cursorTarget));
-    writeTracked(claudeTarget, transform.transformForClaude(body), path.relative(projectRoot, claudeTarget));
+    tracker.writeTracked(cursorTarget, transform.transformForCursor(body, topic), path.relative(projectRoot, cursorTarget));
+    tracker.writeTracked(claudeTarget, transform.transformForClaude(body), path.relative(projectRoot, claudeTarget));
   }
 
-  return { written, drifted, hashes: nextHashes };
+  return { written: tracker.written, drifted: tracker.drifted, hashes: tracker.hashes };
 }
 
 module.exports = { deployRules };
