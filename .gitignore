@@ -1,0 +1,4 @@
+.registry.json
+.myrules-backup/
+.myrules-sync-state.json
+node_modules/
