@@ -95,3 +95,16 @@ test('sync.run second run reports no drift for untouched hook files', () => {
   const s = state.readState(project);
   assert.deepStrictEqual(Object.keys(s.deployedHooks), ['session-start-context']);
 });
+
+test('status.run reports project and user hook counts', () => {
+  const cache = makeCacheRepo();
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-hooks-sync-project-'));
+  const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-hooks-sync-home-'));
+  installSkill(project);
+  syncCli.run(baseOpts(project, cache, homeDir));
+
+  const statusCli = require('../tools/sync/status');
+  const result = statusCli.run({ project, cacheDir: cache, homeDir });
+  assert.strictEqual(result.projectHooksDeployed, 1);
+  assert.strictEqual(result.userHooksDeployed, 1);
+});

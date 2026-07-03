@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const paths = require('./lib/paths');
 const state = require('./lib/state');
 const git = require('./lib/git');
+const hooksState = require('./lib/hooks-state');
 
 function parseArgs(argv) {
   let project = null;
@@ -12,10 +13,12 @@ function parseArgs(argv) {
   return { project };
 }
 
-function run({ project, cacheDir } = {}) {
+function run({ project, cacheDir, homeDir } = {}) {
   const projectRoot = paths.getProjectRoot(project);
   const cache = cacheDir || paths.getCacheDir();
+  const home = homeDir || require('node:os').homedir();
   const s = state.readState(projectRoot);
+  const userHooksState = hooksState.readUserHooksState(home);
   const cacheDirty = fs.existsSync(cache) ? git.isDirty(cache) : null;
 
   return {
@@ -23,6 +26,8 @@ function run({ project, cacheDir } = {}) {
     cacheDir: cache,
     cacheDirty,
     ...s,
+    projectHooksDeployed: Object.keys(s.deployedHooks || {}).length,
+    userHooksDeployed: Object.keys(userHooksState.deployedHooks || {}).length,
   };
 }
 
