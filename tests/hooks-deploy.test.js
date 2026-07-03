@@ -32,6 +32,26 @@ test('mergeHooksJson preserves a foreign entry on a MyRules-managed event via ex
   ]);
 });
 
+test("mergeHooksJson does not delete a foreign entry containing 'myrules-' when prior state exists (exact-match only)", () => {
+  const existing = {
+    version: 1,
+    hooks: {
+      sessionStart: [
+        { command: 'node ./scripts/my-myrules-audit.js' },
+        { command: 'node .cursor/hooks/myrules-old.js' },
+      ],
+    },
+  };
+  const previous = { sessionStart: ['node .cursor/hooks/myrules-old.js'] };
+  const result = mergeHooksJson(existing, previous, [
+    { event: 'sessionStart', command: 'node .cursor/hooks/myrules-new.js' },
+  ]);
+  assert.deepStrictEqual(result.hooks.sessionStart, [
+    { command: 'node ./scripts/my-myrules-audit.js' },
+    { command: 'node .cursor/hooks/myrules-new.js' },
+  ]);
+});
+
 test('mergeHooksJson falls back to a myrules- substring filter when no prior record exists for that event', () => {
   const existing = {
     version: 1,
