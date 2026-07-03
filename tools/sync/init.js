@@ -6,6 +6,8 @@ const gitignoreLib = require('./lib/gitignore');
 const registry = require('./lib/registry');
 const legacy = require('./lib/legacy');
 const loadManifest = require('./lib/load-manifest');
+const ensureCache = require('./lib/ensure-cache');
+const projectSkill = require('./lib/project-skill');
 const syncCli = require('./sync');
 
 function parseArgs(argv) {
@@ -16,11 +18,34 @@ function parseArgs(argv) {
   return { project };
 }
 
+function logSkillResult(result, manifest) {
+  if (result.installed.length) {
+    console.log(`Installed MyRules skill (${result.installed.length}):`);
+    result.installed.forEach((p) => console.log(`  ${p}`));
+    if (manifest.bootstrap?.commitSkillToGit !== false) {
+      console.log('Commit .cursor/skills/myrules/ (and .claude/skills/myrules/ if present) to git.');
+    }
+  }
+  if (result.updated.length) {
+    console.log(`Updated MyRules skill (${result.updated.length}):`);
+    result.updated.forEach((p) => console.log(`  ${p}`));
+  }
+}
+
 function run(opts = {}) {
   const projectRoot = paths.getProjectRoot(opts.project);
-  const cache = opts.cacheDir || paths.getCacheDir();
+  let cache = opts.cacheDir || paths.getCacheDir();
   const homeDir = opts.homeDir || os.homedir();
-  const manifest = loadManifest.loadManifest(cache);
+
+  let manifest = loadManifest.loadManifest(cache);
+  const cacheResult = ensureCache.ensureCache(cache, manifest);
+  if (cacheResult.created) {
+    console.log(`Cloned MyRules cache to ${cache}`);
+    manifest = loadManifest.loadManifest(cache);
+  }
+
+  const skillResult = projectSkill.ensureProjectSkill(projectRoot, cache, manifest);
+  logSkillResult(skillResult, manifest);
 
   if (manifest.deploy.gitignoreDeployArtifacts) {
     gitignoreLib.ensureGitignore(projectRoot, manifest);
@@ -43,4 +68,4 @@ if (require.main === module) {
   run(parseArgs(process.argv.slice(2)));
 }
 
-module.exports = { run, parseArgs };
+module.exports = { run, parseArgs, logSkillResult };

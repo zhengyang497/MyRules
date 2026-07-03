@@ -12,10 +12,14 @@ git clone https://github.com/zhengyang497/MyRules.git ~/.myrules
 
 ## Use in a project
 
-Copy `skills/myrules/` into the project's `.cursor/skills/myrules/` (and
-`.claude/skills/myrules/` if using Claude there), then ask the agent to
-"init my rules". See `skills/myrules/SKILL.md` for the full agent-oriented
-reference.
+Ask the Agent to **「init my rules」** or **「帮我设置 MyRules」**. The `init`
+script clones `~/.myrules/` if needed, installs `.cursor/skills/myrules/`,
+deploys rules, and registers the project — one step, no manual copy.
+
+**Commit** `.cursor/skills/myrules/` (and `.claude/skills/myrules/` if present)
+to git so teammates share the same Agent entry.
+
+See `skills/myrules/SKILL.md` for the full agent-oriented command reference.
 
 ## Commands
 

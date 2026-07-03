@@ -31,6 +31,14 @@ module.exports = {
     gitignoreDeployArtifacts: true,
   },
 
+  bootstrap: {
+    skillSource: "skills/myrules/SKILL.md",
+    cursor: { skillDir: ".cursor/skills/myrules" },
+    claude: { skillDir: ".claude/skills/myrules" },
+    overwriteSkill: "if_changed",
+    commitSkillToGit: true,
+  },
+
   cursor: {
     userRulesVia: "project_always_apply",
     extension: ".mdc",

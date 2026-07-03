@@ -6,23 +6,18 @@ const os = require('node:os');
 const { execFileSync } = require('node:child_process');
 const syncCli = require('../tools/sync/sync');
 const state = require('../tools/sync/lib/state');
+const { seedCacheContent } = require('./helpers/cache-seed');
 
 function run(cwd, args) {
   execFileSync('git', args, { cwd, stdio: 'ignore' });
 }
 
-function copyManifest(cache) {
-  fs.copyFileSync(path.join(__dirname, '..', 'manifest.js'), path.join(cache, 'manifest.js'));
-}
 
 function makeCacheRepo() {
   const cache = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-cache-'));
-  fs.mkdirSync(path.join(cache, 'rules', 'user'), { recursive: true });
-  fs.mkdirSync(path.join(cache, 'rules', 'project'), { recursive: true });
+  seedCacheContent(cache);
   fs.writeFileSync(path.join(cache, 'rules', 'user', 'preferences.md'), '# Preferences\n\n- be concise');
   fs.writeFileSync(path.join(cache, 'rules', 'project', 'testing.md'), '# Testing\n\n- write tests');
-  copyManifest(cache);
-  fs.writeFileSync(path.join(cache, 'skills-manifest.js'), "module.exports = { skills: [] };\n");
   run(cache, ['init']);
   run(cache, ['config', 'user.email', 'test@example.com']);
   run(cache, ['config', 'user.name', 'Test']);
