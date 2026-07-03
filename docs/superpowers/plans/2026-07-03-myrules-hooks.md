@@ -1548,7 +1548,7 @@ module.exports = { mergeHooksJson, deployHooks, deployProjectHooks, deployUserHo
 - [ ] **Step 5: Run tests to verify they pass**
 
 Run: `node --test tests/hooks-deploy.test.js tests/state.test.js`
-Expected: PASS (15 tests in `hooks-deploy.test.js`, 5 in `state.test.js`)
+Expected: PASS (16 tests in `hooks-deploy.test.js` — the 8 already there from Task 8 plus these 8 new ones — and 5 in `state.test.js`)
 
 - [ ] **Step 6: Run the full existing suite to confirm no regressions**
 
