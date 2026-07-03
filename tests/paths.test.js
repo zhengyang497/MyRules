@@ -37,3 +37,28 @@ test('getRegistryFilePath joins homeDir, .myrules, and registry filename', () =>
   const result = paths.getRegistryFilePath('/home/alice');
   assert.strictEqual(result, path.join('/home/alice', '.myrules', '.registry.json'));
 });
+
+test('getCursorProjectHooksDir joins project root and .cursor/hooks', () => {
+  const result = paths.getCursorProjectHooksDir('/tmp/myproject');
+  assert.strictEqual(result, path.join('/tmp/myproject', '.cursor', 'hooks'));
+});
+
+test('getCursorProjectHooksConfig joins project root and .cursor/hooks.json', () => {
+  const result = paths.getCursorProjectHooksConfig('/tmp/myproject');
+  assert.strictEqual(result, path.join('/tmp/myproject', '.cursor', 'hooks.json'));
+});
+
+test('getCursorUserHooksDir joins homeDir and .cursor/hooks', () => {
+  const result = paths.getCursorUserHooksDir('/home/alice');
+  assert.strictEqual(result, path.join('/home/alice', '.cursor', 'hooks'));
+});
+
+test('getCursorUserHooksConfig joins homeDir and .cursor/hooks.json', () => {
+  const result = paths.getCursorUserHooksConfig('/home/alice');
+  assert.strictEqual(result, path.join('/home/alice', '.cursor', 'hooks.json'));
+});
+
+test('getUserHooksStateFilePath joins homeDir, .myrules, and the state filename', () => {
+  const result = paths.getUserHooksStateFilePath('/home/alice');
+  assert.strictEqual(result, path.join('/home/alice', '.myrules', '.user-hooks-state.json'));
+});

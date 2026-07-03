@@ -1,3 +1,4 @@
+// tools/sync/lib/paths.js
 const os = require('node:os');
 const path = require('node:path');
 
@@ -37,6 +38,26 @@ function getRegistryFilePath(homeDir = os.homedir()) {
   return path.join(getCacheDir(homeDir), '.registry.json');
 }
 
+function getCursorProjectHooksDir(projectRoot) {
+  return path.join(projectRoot, '.cursor', 'hooks');
+}
+
+function getCursorProjectHooksConfig(projectRoot) {
+  return path.join(projectRoot, '.cursor', 'hooks.json');
+}
+
+function getCursorUserHooksDir(homeDir = os.homedir()) {
+  return path.join(homeDir, '.cursor', 'hooks');
+}
+
+function getCursorUserHooksConfig(homeDir = os.homedir()) {
+  return path.join(homeDir, '.cursor', 'hooks.json');
+}
+
+function getUserHooksStateFilePath(homeDir = os.homedir()) {
+  return path.join(getCacheDir(homeDir), '.user-hooks-state.json');
+}
+
 module.exports = {
   getCacheDir,
   getProjectRoot,
@@ -47,4 +68,9 @@ module.exports = {
   getClaudeProjectRulesDir,
   getStateFilePath,
   getRegistryFilePath,
+  getCursorProjectHooksDir,
+  getCursorProjectHooksConfig,
+  getCursorUserHooksDir,
+  getCursorUserHooksConfig,
+  getUserHooksStateFilePath,
 };
