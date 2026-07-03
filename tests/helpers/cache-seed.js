@@ -1,3 +1,4 @@
+// tests/helpers/cache-seed.js
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -13,6 +14,16 @@ function seedCacheContent(cacheDir) {
     path.join(cacheDir, 'skills', 'myrules', 'SKILL.md')
   );
   fs.writeFileSync(path.join(cacheDir, 'skills-manifest.js'), 'module.exports = { skills: [] };\n');
+  fs.mkdirSync(path.join(cacheDir, 'hooks', 'project'), { recursive: true });
+  fs.mkdirSync(path.join(cacheDir, 'hooks', 'user'), { recursive: true });
+  fs.copyFileSync(
+    path.join(REPO_ROOT, 'hooks', 'project', 'session-start-context.js'),
+    path.join(cacheDir, 'hooks', 'project', 'session-start-context.js')
+  );
+  fs.copyFileSync(
+    path.join(REPO_ROOT, 'hooks', 'user', 'session-log.js'),
+    path.join(cacheDir, 'hooks', 'user', 'session-log.js')
+  );
 }
 
 module.exports = { seedCacheContent, REPO_ROOT };

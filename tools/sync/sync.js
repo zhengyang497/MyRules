@@ -10,6 +10,8 @@ const registry = require('./lib/registry');
 const loadManifest = require('./lib/load-manifest');
 const ensureCache = require('./lib/ensure-cache');
 const prepareProject = require('./lib/prepare-project');
+const hooksDeploy = require('./lib/hooks-deploy');
+const hooksState = require('./lib/hooks-state');
 
 function parseArgs(argv) {
   const args = { dryRun: false, prune: false, project: null, all: false, force: false };
@@ -30,6 +32,12 @@ function reportSkillResults(results) {
   for (const r of failed) {
     console.warn(`  ${r.name} → ${r.target}: ${r.error}`);
   }
+}
+
+function reportDrifted(label, files) {
+  if (!files.length) return;
+  console.warn(`Skipped ${files.length} locally-modified ${label} (run 'export' first, or pass --force):`);
+  files.forEach((f) => console.warn(`  ${f}`));
 }
 
 function syncOne(cacheDir, projectRoot, opts, manifest) {
@@ -60,10 +68,15 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
     manifest,
     ...(opts.claudeUserDir ? { claudeUserDir: opts.claudeUserDir } : {}),
   });
-  if (result.drifted.length) {
-    console.warn(`Skipped ${result.drifted.length} locally-modified file(s) (run 'export' first, or pass --force):`);
-    result.drifted.forEach((f) => console.warn(`  ${f}`));
-  }
+  reportDrifted('file(s)', result.drifted);
+
+  const hooksResult = hooksDeploy.deployProjectHooks(cacheDir, projectRoot, {
+    force: opts.force,
+    priorState: { deployedHooks: current.deployedHooks, deployedHashes: current.deployedHashes },
+    manifest,
+    ...(opts.claudeDir ? { claudeDir: opts.claudeDir } : {}),
+  });
+  reportDrifted('hook file(s)', hooksResult.drifted);
 
   let lastPruneAt = current.lastPruneAt;
   if (opts.prune) {
@@ -81,7 +94,8 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
     cacheCommit: git.revParseHead(cacheDir),
     lastSyncAt: new Date().toISOString(),
     lastPruneAt,
-    deployedHashes: result.hashes,
+    deployedHashes: { ...result.hashes, ...hooksResult.deployedHashes },
+    deployedHooks: hooksResult.deployedHooks,
   });
   registry.registerProject(projectRoot, opts.homeDir || require('node:os').homedir());
 }
@@ -111,6 +125,20 @@ function run(opts) {
       claudeSkillsDir: paths.getClaudeUserSkillsDir(homeDir),
     });
     reportSkillResults(skillResults);
+  }
+  if (!opts.skipUserHooks) {
+    const priorUserHooksState = hooksState.readUserHooksState(homeDir);
+    const userHooksResult = hooksDeploy.deployUserHooks(cacheDir, {
+      homeDir,
+      force: opts.force,
+      priorState: priorUserHooksState,
+      manifest,
+    });
+    reportDrifted('user hook file(s)', userHooksResult.drifted);
+    hooksState.writeUserHooksState(homeDir, {
+      deployedHooks: userHooksResult.deployedHooks,
+      deployedHashes: userHooksResult.deployedHashes,
+    });
   }
 
   if (opts.all) {
