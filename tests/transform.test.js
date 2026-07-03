@@ -26,3 +26,14 @@ test('stripCursorFrontmatter returns content unchanged if there is no frontmatte
   const plain = '# Hello\n\n- one';
   assert.strictEqual(transform.stripCursorFrontmatter(plain), plain);
 });
+
+test('transformHookForClaude renders event, description, and a no-automation note', () => {
+  const out = transform.transformHookForClaude(
+    { event: 'sessionStart', description: 'Read the status file.' },
+    'session-start-context'
+  );
+  assert.match(out, /## Hook: session-start-context/);
+  assert.match(out, /sessionStart/);
+  assert.match(out, /Read the status file\./);
+  assert.match(out, /no automatic trigger/);
+});

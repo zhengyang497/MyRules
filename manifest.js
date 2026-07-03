@@ -48,5 +48,6 @@ module.exports = {
     userRulesDir: "~/.claude/rules",
     projectRulesDir: ".claude/rules",
     extension: ".md",
+    hookInfix: "hook-",
   },
 };
