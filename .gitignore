@@ -1,4 +1,5 @@
 .registry.json
+.user-hooks-state.json
 .myrules-backup/
 .myrules-sync-state.json
 node_modules/
