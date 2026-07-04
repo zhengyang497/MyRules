@@ -16,10 +16,11 @@ Vocabulary (used throughout this skill):
 | Hooks | `hooks/user/*.js`, `hooks/project/*.js` | Cursor: `hooks.json` + `myrules-*.js`; Claude: `myrules-hook-*.md` convention docs only | See seed hooks `session-log`, `session-start-context` |
 | External skills | `skills-manifest.js` | `~/.cursor/skills/<name>/`, `~/.claude/skills/<name>/` | Never list `myrules` here |
 | Bootstrap skill | `skills/myrules/*` | Project `.cursor/skills/myrules/` (and `.claude/skills/myrules/`) | Via `install-skill.js` |
+| Rule authoring (meta) | `rules/meta/*.md` | *(not deployed)* | Read in cache before editing `user/` / `project/` |
 | Project context | — | `<project>/.myrules-context.md` | User writes per project; not synced |
 
-**Adding a rule:** create `rules/user/topic.md` or `rules/project/topic.md`, push,
-sync.
+**Adding a rule:** read `rules/meta/authoring.md` in the cache first, then create
+`rules/user/topic.md` or `rules/project/topic.md`, push, sync.
 
 **Adding a hook:** create `hooks/user/name.js` or `hooks/project/name.js` with
 `meta` + `handle`, push, sync. Removing a hook source removes its deployed

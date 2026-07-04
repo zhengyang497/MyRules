@@ -67,7 +67,7 @@ order.
 | User intent | Read | Done when |
 |-------------|------|-----------|
 | Daily sync | [`COMMANDS.md`](COMMANDS.md) → sync | Sync completion criteria above |
-| Edit cache content | [`REFERENCE.md`](REFERENCE.md) content map + [`COMMANDS.md`](COMMANDS.md) push + sync | `push.js` exit 0 + sync criteria |
+| Edit cache content | Read `~/.myrules/rules/meta/authoring.md`, then [`REFERENCE.md`](REFERENCE.md) content map + [`COMMANDS.md`](COMMANDS.md) push + sync | `push.js` exit 0 + sync criteria |
 | Local artifact edits | [`COMMANDS.md`](COMMANDS.md) → export or `--force` | User confirms before `--force` |
 | Take over legacy rules | [`COMMANDS.md`](COMMANDS.md) → prune (dry-run first) | Dry-run fingerprint matches before real prune |
 | Check status | [`COMMANDS.md`](COMMANDS.md) → status | Show status JSON to user |
