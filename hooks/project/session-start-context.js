@@ -21,7 +21,8 @@ if (require.main === module) {
   process.stdin.on('data', (c) => (raw += c));
   process.stdin.on('end', () => {
     try {
-      console.log(JSON.stringify(module.exports.handle(JSON.parse(raw || '{}'))));
+      const text = raw.replace(/^\uFEFF/, '');
+      console.log(JSON.stringify(module.exports.handle(JSON.parse(text || '{}'))));
     } catch (err) {
       console.error(err.message);
       console.log('{}');

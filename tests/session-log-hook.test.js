@@ -53,3 +53,32 @@ test('handle falls back to os.homedir() when no homeDir override is given', () =
     else process.env.USERPROFILE = prevUserProfile;
   }
 });
+
+test('running the file directly via stdin/stdout accepts UTF-8 BOM-prefixed JSON from Cursor', () => {
+  const { execFileSync } = require('node:child_process');
+  const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-hook-home-'));
+  const hookPath = path.join(__dirname, '..', 'hooks', 'user', 'session-log.js');
+  const prevHome = process.env.HOME;
+  const prevUserProfile = process.env.USERPROFILE;
+  process.env.HOME = fakeHome;
+  process.env.USERPROFILE = fakeHome;
+  try {
+    execFileSync('node', [hookPath], {
+      input: '\uFEFF' + JSON.stringify({
+        workspace_roots: ['C:\\Users\\test\\empty-window'],
+        duration_ms: 5678,
+        reason: 'completed',
+      }),
+      encoding: 'utf8',
+    });
+    const logContent = fs.readFileSync(path.join(fakeHome, 'myrules-activity-log.md'), 'utf8');
+    assert.match(logContent, /empty-window/);
+    assert.match(logContent, /5678ms/);
+    assert.match(logContent, /completed/);
+  } finally {
+    if (prevHome === undefined) delete process.env.HOME;
+    else process.env.HOME = prevHome;
+    if (prevUserProfile === undefined) delete process.env.USERPROFILE;
+    else process.env.USERPROFILE = prevUserProfile;
+  }
+});

@@ -60,3 +60,15 @@ test('running the file directly via stdin/stdout prints {} for malformed input i
   const output = execFileSync('node', [hookPath], { input: 'not valid json', encoding: 'utf8' });
   assert.strictEqual(output.trim(), '{}');
 });
+
+test('running the file directly via stdin/stdout accepts UTF-8 BOM-prefixed JSON from Cursor', () => {
+  const { execFileSync } = require('node:child_process');
+  const project = tmpProject();
+  fs.writeFileSync(path.join(project, '.myrules-context.md'), 'hello with bom');
+  const hookPath = path.join(__dirname, '..', 'hooks', 'project', 'session-start-context.js');
+  const output = execFileSync('node', [hookPath], {
+    input: '\uFEFF' + JSON.stringify({ workspace_roots: [project] }),
+    encoding: 'utf8',
+  });
+  assert.deepStrictEqual(JSON.parse(output), { additional_context: 'hello with bom' });
+});
