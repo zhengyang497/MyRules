@@ -33,6 +33,7 @@ module.exports = {
 
   bootstrap: {
     skillSource: "skills/myrules/SKILL.md",
+    skillDir: "skills/myrules",
     cursor: { skillDir: ".cursor/skills/myrules" },
     claude: { skillDir: ".claude/skills/myrules" },
     overwriteSkill: "if_changed",

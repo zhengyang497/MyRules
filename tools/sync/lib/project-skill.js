@@ -4,69 +4,101 @@ const fsutil = require('./fsutil');
 
 function getDefaults(manifest) {
   const bootstrap = manifest.bootstrap || {};
+  const skillSource = bootstrap.skillSource || 'skills/myrules/SKILL.md';
   return {
-    skillSource: bootstrap.skillSource || 'skills/myrules/SKILL.md',
+    skillSource,
+    skillDir: bootstrap.skillDir || path.dirname(skillSource),
     cursorSkillDir: bootstrap.cursor?.skillDir || '.cursor/skills/myrules',
     claudeSkillDir: bootstrap.claude?.skillDir || '.claude/skills/myrules',
     overwriteSkill: bootstrap.overwriteSkill || 'if_changed',
   };
 }
 
-function destinationPaths(projectRoot, manifest) {
-  const cfg = getDefaults(manifest);
-  const platforms = manifest.platforms || ['cursor', 'claude'];
-  const dests = [];
-
-  if (platforms.includes('cursor')) {
-    dests.push({
-      platform: 'cursor',
-      path: path.join(projectRoot, cfg.cursorSkillDir, 'SKILL.md'),
-    });
-  }
-  if (platforms.includes('claude')) {
-    dests.push({
-      platform: 'claude',
-      path: path.join(projectRoot, cfg.claudeSkillDir, 'SKILL.md'),
-    });
-  }
-  return dests;
+function listSkillMdFiles(skillDirPath) {
+  if (!fs.existsSync(skillDirPath)) return [];
+  return fs
+    .readdirSync(skillDirPath)
+    .filter((name) => name.endsWith('.md'))
+    .map((name) => path.join(skillDirPath, name))
+    .sort();
 }
 
-function ensureProjectSkill(projectRoot, cacheDir, manifest) {
+function destinationSkillDirs(projectRoot, manifest) {
   const cfg = getDefaults(manifest);
-  const sourceFile = path.join(cacheDir, cfg.skillSource);
+  const platforms = manifest.platforms || ['cursor', 'claude'];
+  const dirs = [];
 
-  if (!fs.existsSync(sourceFile)) {
-    throw new Error(`MyRules skill source missing in cache: ${sourceFile}`);
+  if (platforms.includes('cursor')) {
+    dirs.push(path.join(projectRoot, cfg.cursorSkillDir));
   }
+  if (platforms.includes('claude')) {
+    dirs.push(path.join(projectRoot, cfg.claudeSkillDir));
+  }
+  return dirs;
+}
 
+function destinationPaths(projectRoot, manifest) {
+  const cfg = getDefaults(manifest);
+  return destinationSkillDirs(projectRoot, manifest).map((dir) => ({
+    path: path.join(dir, 'SKILL.md'),
+  }));
+}
+
+function copyOneSkillFile(sourceFile, destFile, overwriteSkill, result) {
   const sourceContent = fs.readFileSync(sourceFile, 'utf8');
   const sourceHash = fsutil.hashContent(sourceContent);
-  const result = { installed: [], updated: [], skipped: [] };
 
-  for (const { platform, path: destFile } of destinationPaths(projectRoot, manifest)) {
-    if (fs.existsSync(destFile)) {
-      const destHash = fsutil.hashContent(fs.readFileSync(destFile, 'utf8'));
-      if (cfg.overwriteSkill === 'never_if_exists') {
-        result.skipped.push(destFile);
-        continue;
-      }
-      if (cfg.overwriteSkill === 'if_changed' && destHash === sourceHash) {
-        result.skipped.push(destFile);
-        continue;
-      }
-      fsutil.ensureDir(path.dirname(destFile));
-      fs.writeFileSync(destFile, sourceContent);
-      result.updated.push(destFile);
-      continue;
+  if (fs.existsSync(destFile)) {
+    const destHash = fsutil.hashContent(fs.readFileSync(destFile, 'utf8'));
+    if (overwriteSkill === 'never_if_exists') {
+      result.skipped.push(destFile);
+      return;
     }
-
+    if (overwriteSkill === 'if_changed' && destHash === sourceHash) {
+      result.skipped.push(destFile);
+      return;
+    }
     fsutil.ensureDir(path.dirname(destFile));
     fs.writeFileSync(destFile, sourceContent);
-    result.installed.push(destFile);
+    result.updated.push(destFile);
+    return;
+  }
+
+  fsutil.ensureDir(path.dirname(destFile));
+  fs.writeFileSync(destFile, sourceContent);
+  result.installed.push(destFile);
+}
+
+function copySkillDir(sourceDir, projectRoot, manifest) {
+  const cfg = getDefaults(manifest);
+  const skillDirPath = path.join(sourceDir, cfg.skillDir);
+  const sourceFiles = listSkillMdFiles(skillDirPath);
+
+  if (!sourceFiles.length) {
+    throw new Error(`MyRules skill directory missing or empty: ${skillDirPath}`);
+  }
+
+  const skillMd = path.join(skillDirPath, 'SKILL.md');
+  if (!sourceFiles.includes(skillMd)) {
+    throw new Error(`MyRules skill source missing in cache: ${skillMd}`);
+  }
+
+  const result = { installed: [], updated: [], skipped: [] };
+  const destDirs = destinationSkillDirs(projectRoot, manifest);
+
+  for (const destDir of destDirs) {
+    for (const sourceFile of sourceFiles) {
+      const rel = path.relative(skillDirPath, sourceFile);
+      const destFile = path.join(destDir, rel);
+      copyOneSkillFile(sourceFile, destFile, cfg.overwriteSkill, result);
+    }
   }
 
   return result;
+}
+
+function ensureProjectSkill(projectRoot, cacheDir, manifest) {
+  return copySkillDir(cacheDir, projectRoot, manifest);
 }
 
 function isProjectSkillInstalled(projectRoot, manifest) {
@@ -90,7 +122,10 @@ function logSkillInstallResult(result, manifest) {
 
 module.exports = {
   ensureProjectSkill,
+  copySkillDir,
+  listSkillMdFiles,
   destinationPaths,
+  destinationSkillDirs,
   getDefaults,
   isProjectSkillInstalled,
   logSkillInstallResult,

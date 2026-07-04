@@ -39,7 +39,11 @@ test('install-skill.run installs project skill without deploying rules', () => {
   installSkill(project);
 
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'skills', 'myrules', 'SKILL.md')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'skills', 'myrules', 'REFERENCE.md')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'skills', 'myrules', 'COMMANDS.md')));
   assert.ok(fs.existsSync(path.join(project, '.claude', 'skills', 'myrules', 'SKILL.md')));
+  assert.ok(fs.existsSync(path.join(project, '.claude', 'skills', 'myrules', 'REFERENCE.md')));
+  assert.ok(fs.existsSync(path.join(project, '.claude', 'skills', 'myrules', 'COMMANDS.md')));
   assert.strictEqual(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-testing.mdc')), false);
 });
 

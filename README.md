@@ -10,15 +10,16 @@ those outputs are not the source of truth.
 
 ## What gets synced
 
-| Content | Source in `~/.myrules/` | Deploy target |
-|---------|-------------------------|---------------|
-| Rules | `rules/user/`, `rules/project/` (Markdown) | `.cursor/rules/myrules-*`, `.claude/rules/myrules-*` |
-| Hooks | `hooks/user/`, `hooks/project/` (Node.js) | Cursor: `hooks.json` + `myrules-*.js` scripts. Claude: prose convention docs only |
-| External skills | `skills-manifest.js` (git URL list) | `~/.cursor/skills/<name>/`, `~/.claude/skills/<name>/` |
+MyRules manages **rules**, **hooks**, and **external skill subscriptions** in
+the cache (`~/.myrules/`), then deploys generated files into each project and
+into `~/.cursor/` / `~/.claude/`.
 
-**Separate from the above:**
+Full content map (sources, deploy targets, and notes):
+[`skills/myrules/REFERENCE.md`](skills/myrules/REFERENCE.md).
 
-- **`skills/myrules/SKILL.md`** — bootstrap skill copied into each project by
+**Separate from the sync bundle:**
+
+- **`skills/myrules/`** — bootstrap skill copied into each project by
   `install-skill.js` (not listed in `skills-manifest.js`).
 - **`<project>/.myrules-context.md`** — optional per-project file for the
   `session-start-context` hook; you write it in each project yourself.
@@ -44,7 +45,7 @@ The Agent should shallow-clone this repo and run:
 node "<clone>/tools/sync/install-skill.js" --project "<workspace>"
 ```
 
-This only installs `.cursor/skills/myrules/` (and `.claude/skills/myrules/` when
+This installs `.cursor/skills/myrules/` (and `.claude/skills/myrules/` when
 applicable). **Commit** those paths to git so teammates share the same Agent
 entry.
 
@@ -63,49 +64,28 @@ the project. The same phrase covers the first deploy and all later updates.
 If the user says **「帮我设置 MyRules」** in one sentence, the Agent should still
 do step 1 then step 2 in order.
 
-See `skills/myrules/SKILL.md` for the full agent-oriented command reference.
+See [`skills/myrules/SKILL.md`](skills/myrules/SKILL.md) for the agent-oriented
+workflow (bootstrap steps, completion criteria, branch routing).
 
 ## Commands
 
+See [`skills/myrules/COMMANDS.md`](skills/myrules/COMMANDS.md) for the full
+command table (`install-skill`, `sync`, `export`, `push`, `status`, prune, and
+force).
+
 The same `node` invocations work on Windows (PowerShell) and macOS/Linux
 (bash/zsh) — both expand `$HOME`. Quote paths that contain spaces.
-
-| User intent | Command |
-|-------------|---------|
-| Import MyRules skill into a project (step 1) | `node "<myrules-clone>/tools/sync/install-skill.js" --project "<workspace>"` |
-| Sync into a project (rules + hooks + external skills) | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>"` — or from a clone when `~/.myrules/` does not exist yet |
-| Sync every known project on this machine | `node "$HOME/.myrules/tools/sync/sync.js" --all` |
-| Take over an old project's rules | 1) dry-run: `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --dry-run --prune-legacy-rules`, review the listed files, then 2) `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --prune-legacy-rules` |
-| Force-overwrite a locally-edited myrules-* rule or hook file | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --force` |
-| See what **rules** changed locally vs the cache | `node "$HOME/.myrules/tools/sync/export.js" --project "<workspace>"` |
-| Publish edits made in `~/.myrules/` | `node "$HOME/.myrules/tools/sync/push.js" -m "describe the change"` |
-| Check sync status (includes hook counts) | `node "$HOME/.myrules/tools/sync/status.js" --project "<workspace>"` |
 
 ## Edit content
 
 All editable sources live under `~/.myrules/` (or this repo if you develop
 directly in the cache — see below).
 
-| Goal | Edit |
-|------|------|
-| Personal rules | `rules/user/*.md` |
-| Project rule template | `rules/project/*.md` |
-| User-level hooks (all projects) | `hooks/user/*.js` |
-| Project-level hooks | `hooks/project/*.js` |
-| External skill subscriptions | `skills-manifest.js` |
+See [`skills/myrules/REFERENCE.md`](skills/myrules/REFERENCE.md) for the content
+map and edit workflow (rules, hooks, `skills-manifest.js`, project context).
 
-Workflow: edit → `node tools/sync/push.js -m "..."` → on other machines
-`node tools/sync/sync.js --all` (or `--project <dir>`).
-
-**Hooks:** Cursor executes deployed scripts automatically. Claude gets markdown
-convention files only (no automatic trigger). Seed examples:
-`hooks/project/session-start-context.js`, `hooks/user/session-log.js`.
-
-**External skills:** add `{ name, repo, ref }` to `skills-manifest.js`. Do not
-include `myrules` — that skill is installed per project via step 1.
-
-**Project context file:** optional `.myrules-context.md` at a project root for
-session-start context injection.
+Workflow summary: edit in cache → `push.js` → `sync.js --all` or
+`sync.js --project <dir>` on each machine.
 
 ## Developing MyRules itself
 
@@ -124,8 +104,8 @@ node --test tests/
 Push from there as usual (`node tools/sync/push.js -m "..."`) — no symlink,
 no admin rights, no Developer Mode required.
 
-After changing `skills/myrules/SKILL.md`, re-run `install-skill.js` in projects
-that should pick up the updated agent instructions (or copy the file manually).
+After changing `skills/myrules/`, re-run `install-skill.js` in projects that
+should pick up the updated agent instructions.
 
 Manual hooks verification guide:
 `docs/superpowers/manual-verification/2026-07-04-hooks-task13-agent-guide.md`

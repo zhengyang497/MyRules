@@ -4,15 +4,19 @@ const path = require('node:path');
 
 const REPO_ROOT = path.join(__dirname, '..', '..');
 
+function copySkillDir(srcDir, destDir) {
+  fs.mkdirSync(destDir, { recursive: true });
+  for (const name of fs.readdirSync(srcDir)) {
+    if (!name.endsWith('.md')) continue;
+    fs.copyFileSync(path.join(srcDir, name), path.join(destDir, name));
+  }
+}
+
 function seedCacheContent(cacheDir) {
   fs.mkdirSync(path.join(cacheDir, 'rules', 'user'), { recursive: true });
   fs.mkdirSync(path.join(cacheDir, 'rules', 'project'), { recursive: true });
   fs.copyFileSync(path.join(REPO_ROOT, 'manifest.js'), path.join(cacheDir, 'manifest.js'));
-  fs.mkdirSync(path.join(cacheDir, 'skills', 'myrules'), { recursive: true });
-  fs.copyFileSync(
-    path.join(REPO_ROOT, 'skills', 'myrules', 'SKILL.md'),
-    path.join(cacheDir, 'skills', 'myrules', 'SKILL.md')
-  );
+  copySkillDir(path.join(REPO_ROOT, 'skills', 'myrules'), path.join(cacheDir, 'skills', 'myrules'));
   fs.writeFileSync(path.join(cacheDir, 'skills-manifest.js'), 'module.exports = { skills: [] };\n');
   fs.mkdirSync(path.join(cacheDir, 'hooks', 'project'), { recursive: true });
   fs.mkdirSync(path.join(cacheDir, 'hooks', 'user'), { recursive: true });
@@ -26,4 +30,4 @@ function seedCacheContent(cacheDir) {
   );
 }
 
-module.exports = { seedCacheContent, REPO_ROOT };
+module.exports = { seedCacheContent, REPO_ROOT, copySkillDir };
