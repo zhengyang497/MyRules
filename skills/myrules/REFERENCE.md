@@ -12,7 +12,8 @@ Vocabulary (used throughout this skill):
 
 | Kind | Edit in cache | Deployed artifacts | Notes |
 |------|---------------|-------------------|-------|
-| Rules | `rules/user/*.md`, `rules/project/*.md` | `.cursor/rules/myrules-*.mdc`, `.claude/rules/myrules-*.md` | One topic per file |
+| Rules | `rules/user/*.md`, `rules/project/*.md` | `.cursor/rules/myrules-*.mdc`, `.claude/rules/myrules-*.md` | One topic per file; `project/` may use `agents:` frontmatter |
+| Sub-agents | same sources (filtered by `agents:`) | `.cursor/agents/myrules-*.md`, `.claude/agents/myrules-*.md` | **One-way deploy** — edit cache sources, not agent files; `export` does not reverse-merge agents |
 | Hooks | `hooks/user/*.js`, `hooks/project/*.js` | Cursor: `hooks.json` + `myrules-*.js`; Claude: `myrules-hook-*.md` convention docs only | See seed hooks `session-log`, `session-start-context` |
 | External skills | `skills-manifest.js` | `~/.cursor/skills/<name>/`, `~/.claude/skills/<name>/` | Never list `myrules` here |
 | Bootstrap skill | `skills/myrules/*` | Project `.cursor/skills/myrules/` (and `.claude/skills/myrules/`) | Via `install-skill.js` |
@@ -42,7 +43,7 @@ On each run (for one project or `--all`):
 3. `git pull --ff-only` in the cache
 4. Clone/update external skills listed in `skills-manifest.js`
 5. Deploy user-level hooks once per run (to `~/.cursor/hooks/`)
-6. Deploy project rules + project hooks into the target project(s)
+6. Deploy project rules + project hooks + sub-agent bundles into the target project(s)
 7. Append the MyRules block to the project `.gitignore` (first time only)
 8. Register the project in `~/.myrules/.registry.json`
 
@@ -55,6 +56,11 @@ command.
   with `alwaysApply: true` (not Cursor Settings UI).
 - **Claude user rules:** `~/.claude/rules/myrules-user-*.md`; project rules in
   `.claude/rules/myrules-*.md`.
+- **Sub-agents:** three role bundles (`planner`, `implementer`, `reviewer`) from
+  `rules/user/` (all) + `rules/project/` (filtered by `agents:` frontmatter).
+  Agent file bodies load only when a sub-agent is delegated — they do not bloat
+  the main session context. On Claude, delegated sub-agents may also load the
+  same `.claude/rules/` set as the parent session (v1 accepts this duplication).
 - **Hooks:** Cursor runs deployed `.js` scripts via `hooks.json`. Claude receives
   generated markdown convention files only — follow them manually; no automatic
   trigger.
@@ -78,7 +84,7 @@ command.
   suggest `export` first; for hooks, edit the source in `~/.myrules/hooks/` and
   re-sync — use `--force` only when the user explicitly wants to discard local
   edits to deployed **artifacts**.
-- `export.js` reverse-maps **rules only** (not hooks).
+- `export.js` reverse-maps **rules only** (not hooks or sub-agent bundles).
 - `--prune-legacy-rules` always requires a preceding `--dry-run
   --prune-legacy-rules` against the *same* legacy file set. If the tool refuses,
   run the dry-run again and show the user the list before retrying.

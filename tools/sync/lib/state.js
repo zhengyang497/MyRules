@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const paths = require('./paths');
 
 const DEFAULT_STATE = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   cachePath: '~/.myrules',
   cacheCommit: null,
   lastSyncAt: null,
@@ -12,6 +12,7 @@ const DEFAULT_STATE = {
   legacyRulesFingerprint: null,
   legacyRulesDetected: 0,
   deployedHashes: {},
+  deployedAgentHashes: {},
   deployedHooks: {},
 };
 

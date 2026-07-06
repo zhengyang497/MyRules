@@ -12,7 +12,7 @@ function tmpProject() {
 test('readState returns defaults when no state file exists', () => {
   const project = tmpProject();
   const s = state.readState(project);
-  assert.strictEqual(s.schemaVersion, 1);
+  assert.strictEqual(s.schemaVersion, 2);
   assert.strictEqual(s.pruneDryRunDone, false);
   assert.strictEqual(s.cacheCommit, null);
 });
@@ -48,4 +48,11 @@ test('writeState persists nested deployedHooks object', () => {
   });
   const s = state.readState(project);
   assert.deepStrictEqual(s.deployedHooks, { 'session-start-context': { event: 'sessionStart', command: 'node x' } });
+});
+
+test('writeState persists deployedAgentHashes object', () => {
+  const project = tmpProject();
+  state.writeState(project, { deployedAgentHashes: { '.cursor/agents/myrules-planner.md': 'hash1' } });
+  const s = state.readState(project);
+  assert.deepStrictEqual(s.deployedAgentHashes, { '.cursor/agents/myrules-planner.md': 'hash1' });
 });

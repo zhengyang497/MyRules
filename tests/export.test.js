@@ -61,3 +61,17 @@ test('exportProject detects a hand-edited user rule and maps it to rules/user/<t
   assert.ok(match);
   assert.strictEqual(match.sourceFile, path.join(cache, 'rules', 'user', 'preferences.md'));
 });
+
+test('exportProject compares project sources without frontmatter against deployed rules', () => {
+  const cache = makeCache();
+  fs.writeFileSync(
+    path.join(cache, 'rules', 'project', 'testing.md'),
+    '---\nagents: [implementer]\n---\n\n# Testing\n\n- write tests'
+  );
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-export-frontmatter-'));
+  const claudeUserDir = fakeClaudeUserDir(project);
+  deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir });
+
+  const report = exportLib.exportProject(cache, project, { claudeUserDir });
+  assert.strictEqual(report.toUpdate.length, 0);
+});

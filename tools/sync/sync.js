@@ -4,6 +4,7 @@ const paths = require('./lib/paths');
 const git = require('./lib/git');
 const state = require('./lib/state');
 const deploy = require('./lib/deploy');
+const deployAgents = require('./lib/deploy-agents');
 const legacy = require('./lib/legacy');
 const skills = require('./lib/skills');
 const registry = require('./lib/registry');
@@ -70,6 +71,19 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
   });
   reportDrifted('file(s)', result.drifted);
 
+  const agentsResult = deployAgents.deployAgents(cacheDir, projectRoot, {
+    force: opts.force,
+    priorAgentHashes: current.deployedAgentHashes,
+    manifest,
+  });
+  reportDrifted('agent file(s)', agentsResult.drifted);
+  if (agentsResult.missingAgents.length) {
+    console.warn(
+      `Skipped ${agentsResult.missingAgents.length} project rule(s) without agents frontmatter (add agents: to include in sub-agent bundles):`
+    );
+    agentsResult.missingAgents.forEach((f) => console.warn(`  rules/project/${f}`));
+  }
+
   const hooksResult = hooksDeploy.deployProjectHooks(cacheDir, projectRoot, {
     force: opts.force,
     priorState: { deployedHooks: current.deployedHooks, deployedHashes: current.deployedHashes },
@@ -95,6 +109,7 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
     lastSyncAt: new Date().toISOString(),
     lastPruneAt,
     deployedHashes: { ...result.hashes, ...hooksResult.deployedHashes },
+    deployedAgentHashes: agentsResult.hashes,
     deployedHooks: hooksResult.deployedHooks,
   });
   registry.registerProject(projectRoot, opts.homeDir || require('node:os').homedir());

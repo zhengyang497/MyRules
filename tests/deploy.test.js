@@ -70,3 +70,51 @@ test('deployRules with force:true overwrites drifted files', () => {
   assert.strictEqual(second.drifted.length, 0);
   assert.match(fs.readFileSync(cursorProjectFile, 'utf8'), /write tests/);
 });
+
+test('deployRules strips project frontmatter from rules artifacts', () => {
+  const cache = makeCache();
+  fs.writeFileSync(
+    path.join(cache, 'rules', 'project', 'testing.md'),
+    '---\nagents: [implementer]\n---\n\n# Testing\n\n- write tests'
+  );
+  const project = makeProject();
+  const claudeUserDir = fakeClaudeUserDir(project);
+  deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir });
+
+  const cursorProject = fs.readFileSync(path.join(project, '.cursor', 'rules', 'myrules-testing.mdc'), 'utf8');
+  const claudeProject = fs.readFileSync(path.join(project, '.claude', 'rules', 'myrules-testing.md'), 'utf8');
+  assert.doesNotMatch(cursorProject, /agents:/);
+  assert.doesNotMatch(claudeProject, /agents:/);
+  assert.match(cursorProject, /write tests/);
+});
+
+test('deployRules removes stale rule artifacts after ai-behavior migration to user/', () => {
+  const cache = makeCache();
+  const project = makeProject();
+  const claudeUserDir = fakeClaudeUserDir(project);
+  fs.mkdirSync(path.join(project, '.cursor', 'rules'), { recursive: true });
+  fs.mkdirSync(path.join(project, '.claude', 'rules'), { recursive: true });
+  fs.mkdirSync(claudeUserDir, { recursive: true });
+
+  const staleCursor = path.join(project, '.cursor', 'rules', 'myrules-ai-behavior.mdc');
+  const staleClaudeProj = path.join(project, '.claude', 'rules', 'myrules-ai-behavior.md');
+  const staleClaudeUser = path.join(claudeUserDir, 'myrules-ai-behavior.md');
+  fs.writeFileSync(staleCursor, 'old project-level ai-behavior');
+  fs.writeFileSync(staleClaudeProj, 'old project-level ai-behavior');
+  fs.writeFileSync(staleClaudeUser, 'old wrong user path');
+
+  fs.writeFileSync(path.join(cache, 'rules', 'user', 'ai-behavior.md'), '# AI Behavior\n\n- read first');
+  const priorHashes = {
+    '.cursor/rules/myrules-ai-behavior.mdc': 'old',
+    '.claude/rules/myrules-ai-behavior.md': 'old',
+    '~claude-user~/myrules-ai-behavior.md': 'old',
+  };
+
+  deploy.deployRules(cache, project, { force: false, priorHashes, claudeUserDir });
+
+  assert.strictEqual(fs.existsSync(staleCursor), false);
+  assert.strictEqual(fs.existsSync(staleClaudeProj), false);
+  assert.strictEqual(fs.existsSync(staleClaudeUser), false);
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-user-ai-behavior.mdc')));
+  assert.ok(fs.existsSync(path.join(claudeUserDir, 'myrules-user-ai-behavior.md')));
+});

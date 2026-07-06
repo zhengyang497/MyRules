@@ -34,6 +34,33 @@ breaking the "seen it first" bar.
 
 ## What belongs in deployable rules (`user/` / `project/`)
 
+`rules/user/` holds personal rules that apply to **all** roles (preferences,
+prohibitions, output standards, AI behavior baseline). `rules/project/` holds
+project-specific rules that can be scoped to sub-agent roles via frontmatter.
+
+### `agents` frontmatter (`project/` only)
+
+Optional YAML at the top of `rules/project/*.md` files:
+
+```yaml
+---
+agents: [implementer, reviewer]
+---
+```
+
+| `agents` value | Rules channel (alwaysApply) | Agents channel (sub-agent bundles) |
+|----------------|----------------------------|----------------------------------|
+| omitted | Deployed, full load | **Skipped** — sync warns; add explicit `agents:` |
+| `all` | Deployed, full load | Included in planner, implementer, and reviewer |
+| `[planner]` etc. | Deployed, full load | Only in matching role bundle(s) |
+
+Frontmatter is stripped before rules deploy. User rules never use `agents:` — all
+`rules/user/*.md` files are included in every sub-agent bundle.
+
+Sub-agent roles (fixed): **planner**, **implementer**, **reviewer**. One `sync`
+writes rules to `.cursor/rules/` / `.claude/rules/` and agents to
+`.cursor/agents/` / `.claude/agents/`.
+
 Good lines are:
 
 - **Specific** — which files, which commands, which workflow.

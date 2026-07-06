@@ -8,6 +8,14 @@ Content lives in `~/.myrules/` (a clone of this repo). `sync.js` deploys
 generated artifacts into each project and into `~/.cursor/` / `~/.claude/` —
 those outputs are not the source of truth.
 
+Each sync writes two channels from the same cache sources:
+
+- **Rules** — all `rules/user/` + `rules/project/` → `.cursor/rules/` and
+  `.claude/rules/` (always loaded in the main session).
+- **Sub-agents** — all `rules/user/` + `rules/project/` filtered by `agents:`
+  frontmatter → three role bundles in `.cursor/agents/` and `.claude/agents/`
+  (`planner`, `implementer`, `reviewer`). Agent bodies load only when delegated.
+
 ## What gets synced
 
 MyRules manages **rules**, **hooks**, and **external skill subscriptions** in

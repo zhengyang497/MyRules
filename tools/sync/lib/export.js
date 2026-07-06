@@ -13,7 +13,7 @@ function diffFile(deployedFile, sourceFile, report) {
     report.sourceMissing.push({ deployedFile, sourceFile, body });
     return;
   }
-  const sourceBody = fs.readFileSync(sourceFile, 'utf8');
+  const sourceBody = transform.stripRuleFrontmatter(fs.readFileSync(sourceFile, 'utf8'));
   if (body.trim() !== sourceBody.trim()) {
     report.toUpdate.push({ deployedFile, sourceFile, body });
   }

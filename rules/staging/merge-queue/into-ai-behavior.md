@@ -1,4 +1,4 @@
-# Merge into: `rules/project/ai-behavior.md`
+# Merge into: `rules/user/ai-behavior.md`
 
 ## Candidates
 

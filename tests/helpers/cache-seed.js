@@ -18,6 +18,14 @@ function seedCacheContent(cacheDir) {
   fs.copyFileSync(path.join(REPO_ROOT, 'manifest.js'), path.join(cacheDir, 'manifest.js'));
   copySkillDir(path.join(REPO_ROOT, 'skills', 'myrules'), path.join(cacheDir, 'skills', 'myrules'));
   fs.writeFileSync(path.join(cacheDir, 'skills-manifest.js'), 'module.exports = { skills: [] };\n');
+  for (const f of fs.readdirSync(path.join(REPO_ROOT, 'rules', 'project'))) {
+    if (!f.endsWith('.md')) continue;
+    fs.copyFileSync(path.join(REPO_ROOT, 'rules', 'project', f), path.join(cacheDir, 'rules', 'project', f));
+  }
+  for (const f of fs.readdirSync(path.join(REPO_ROOT, 'rules', 'user'))) {
+    if (!f.endsWith('.md')) continue;
+    fs.copyFileSync(path.join(REPO_ROOT, 'rules', 'user', f), path.join(cacheDir, 'rules', 'user', f));
+  }
   fs.mkdirSync(path.join(cacheDir, 'hooks', 'project'), { recursive: true });
   fs.mkdirSync(path.join(cacheDir, 'hooks', 'user'), { recursive: true });
   fs.copyFileSync(

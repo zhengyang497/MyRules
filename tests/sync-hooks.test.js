@@ -19,7 +19,10 @@ function makeCacheRepo() {
   const cache = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-hooks-sync-cache-'));
   seedCacheContent(cache);
   fs.writeFileSync(path.join(cache, 'rules', 'user', 'preferences.md'), '# Preferences\n\n- be concise');
-  fs.writeFileSync(path.join(cache, 'rules', 'project', 'testing.md'), '# Testing\n\n- write tests');
+  fs.writeFileSync(
+    path.join(cache, 'rules', 'project', 'testing.md'),
+    '---\nagents: [implementer, reviewer]\n---\n\n# Testing\n\n- write tests'
+  );
   run(cache, ['init']);
   run(cache, ['config', 'user.email', 'test@example.com']);
   run(cache, ['config', 'user.name', 'Test']);

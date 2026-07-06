@@ -30,6 +30,14 @@ function getClaudeProjectRulesDir(projectRoot) {
   return path.join(projectRoot, '.claude', 'rules');
 }
 
+function getCursorAgentsDir(projectRoot) {
+  return path.join(projectRoot, '.cursor', 'agents');
+}
+
+function getClaudeAgentsDir(projectRoot) {
+  return path.join(projectRoot, '.claude', 'agents');
+}
+
 function getStateFilePath(projectRoot) {
   return path.join(projectRoot, '.myrules-sync-state.json');
 }
@@ -66,6 +74,8 @@ module.exports = {
   getCursorUserSkillsDir,
   getCursorRulesDir,
   getClaudeProjectRulesDir,
+  getCursorAgentsDir,
+  getClaudeAgentsDir,
   getStateFilePath,
   getRegistryFilePath,
   getCursorProjectHooksDir,

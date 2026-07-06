@@ -45,3 +45,11 @@ test('ensureGitignore includes the MyRules-managed hook scripts pattern', () => 
   const content = fs.readFileSync(path.join(project, '.gitignore'), 'utf8');
   assert.match(content, /\.cursor\/hooks\/myrules-\*/);
 });
+
+test('ensureGitignore includes sub-agent artifact paths', () => {
+  const project = tmpProject();
+  gitignore.ensureGitignore(project, manifest);
+  const content = fs.readFileSync(path.join(project, '.gitignore'), 'utf8');
+  assert.match(content, /\.cursor\/agents\/myrules-\*/);
+  assert.match(content, /\.claude\/agents\/myrules-\*/);
+});

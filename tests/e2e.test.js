@@ -17,7 +17,10 @@ function makeCacheRepo() {
   const cache = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-e2e-cache-'));
   seedCacheContent(cache);
   fs.writeFileSync(path.join(cache, 'rules', 'user', 'preferences.md'), '# Preferences\n\n- be concise');
-  fs.writeFileSync(path.join(cache, 'rules', 'project', 'testing.md'), '# Testing\n\n- write tests');
+  fs.writeFileSync(
+    path.join(cache, 'rules', 'project', 'testing.md'),
+    '---\nagents: [implementer, reviewer]\n---\n\n# Testing\n\n- write tests'
+  );
   run(cache, ['init']);
   run(cache, ['config', 'user.email', 'test@example.com']);
   run(cache, ['config', 'user.name', 'Test']);
@@ -61,6 +64,9 @@ test('end-to-end: init, sync, protect, dry-run prune, prune, export', () => {
 
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'skills', 'myrules', 'SKILL.md')));
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-testing.mdc')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-planner.md')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-implementer.md')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-reviewer.md')));
   assert.strictEqual(fs.readFileSync(path.join(project, 'CLAUDE.md'), 'utf8'), '# Project context — do not touch');
   assert.strictEqual(fs.readFileSync(path.join(project, 'AGENTS.md'), 'utf8'), '# Agent notes — do not touch');
 
@@ -77,6 +83,7 @@ test('end-to-end: init, sync, protect, dry-run prune, prune, export', () => {
     { command: 'node .cursor/hooks/myrules-session-start-context.js' },
   ]);
   assert.match(gitignoreContent, /\.cursor\/hooks\/myrules-\*/);
+  assert.match(gitignoreContent, /\.cursor\/agents\/myrules-\*/);
 
   syncCli.run({ ...opts, dryRun: true, prune: true });
   syncCli.run({ ...opts, prune: true });

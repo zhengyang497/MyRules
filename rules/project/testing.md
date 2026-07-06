@@ -1,3 +1,7 @@
+---
+agents: [implementer, reviewer]
+---
+
 # Testing
 
 - Run relevant tests after behavioral changes.

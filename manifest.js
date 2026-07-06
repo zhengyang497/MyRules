@@ -51,4 +51,28 @@ module.exports = {
     extension: ".md",
     hookInfix: "hook-",
   },
+
+  agents: {
+    roles: {
+      planner: {
+        description:
+          "Plans work: clarify requirements, decompose tasks, define scope. Use before implementation.",
+        readonly: true,
+        model: "inherit",
+      },
+      implementer: {
+        description: "Implements approved plans: write code, run tests, minimal scope.",
+        readonly: false,
+        model: "inherit",
+      },
+      reviewer: {
+        description: "Skeptical reviewer: verify claims, run tests, report pass/fail. Read-only.",
+        readonly: true,
+        model: "inherit",
+      },
+    },
+    prefix: "myrules-",
+    cursorDir: ".cursor/agents",
+    claudeDir: ".claude/agents",
+  },
 };

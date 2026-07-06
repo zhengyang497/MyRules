@@ -1,54 +1,88 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const paths = require('./paths');
-const fsutil = require('./fsutil');
 const transform = require('./transform');
-const loadManifest = require('./load-manifest');
 const drift = require('./drift');
+const loadManifest = require('./load-manifest');
 
-function listTopics(dir) {
-  return fsutil.listFilesWithExt(dir, '.md').map((file) => ({
-    file,
-    topic: path.basename(file, '.md'),
-  }));
+function listMdFiles(dir) {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).filter((f) => f.endsWith('.md')).sort();
+}
+
+function isRuleStateKey(key) {
+  if (key.startsWith('script:') || key.startsWith('claude:')) return false;
+  return (
+    key.startsWith('.cursor/rules/') ||
+    key.startsWith('.claude/rules/') ||
+    key.startsWith('~claude-user~/')
+  );
+}
+
+function staleRuleCleanup(priorHashes, newHashes, projectRoot, claudeUserDir) {
+  const removed = [];
+  for (const key of Object.keys(priorHashes || {})) {
+    if (!isRuleStateKey(key) || key in newHashes) continue;
+    const filePath = key.startsWith('~claude-user~/')
+      ? path.join(claudeUserDir, key.slice('~claude-user~/'.length))
+      : path.join(projectRoot, key);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      removed.push(filePath);
+    }
+  }
+  return removed;
 }
 
 function deployRules(cacheDir, projectRoot, opts = {}) {
   const manifest = opts.manifest || loadManifest.loadManifest(cacheDir);
   const prefix = manifest.managedPrefix;
-  const cursorExt = manifest.cursor.extension;
-  const claudeExt = manifest.claude.extension;
+  const userPrefix = `${prefix}user-`;
+  const force = opts.force || false;
+  const priorHashes = opts.priorHashes || {};
+  const claudeUserDir = opts.claudeUserDir || paths.getClaudeUserRulesDir();
+  const cursorDir = paths.getCursorRulesDir(projectRoot);
+  const claudeProjDir = paths.getClaudeProjectRulesDir(projectRoot);
 
-  const {
-    force = false,
-    priorHashes = {},
-    cursorDir = paths.getCursorRulesDir(projectRoot),
-    claudeProjDir = paths.getClaudeProjectRulesDir(projectRoot),
-    claudeUserDir = paths.getClaudeUserRulesDir(),
-  } = opts;
-  fsutil.ensureDir(cursorDir);
-  fsutil.ensureDir(claudeProjDir);
-  fsutil.ensureDir(claudeUserDir);
+  fs.mkdirSync(cursorDir, { recursive: true });
+  fs.mkdirSync(claudeProjDir, { recursive: true });
+  fs.mkdirSync(claudeUserDir, { recursive: true });
 
   const tracker = drift.createTracker({ force, priorHashes });
 
-  for (const { file, topic } of listTopics(path.join(cacheDir, 'rules', 'user'))) {
-    const body = fs.readFileSync(file, 'utf8');
-    const cursorTarget = path.join(cursorDir, `${prefix}user-${topic}${cursorExt}`);
-    const claudeTarget = path.join(claudeUserDir, `${prefix}user-${topic}${claudeExt}`);
-    tracker.writeTracked(cursorTarget, transform.transformForCursor(body, topic), path.relative(projectRoot, cursorTarget));
-    tracker.writeTracked(claudeTarget, transform.transformForClaude(body), `~claude-user~/${prefix}user-${topic}${claudeExt}`);
+  for (const category of ['user', 'project']) {
+    const srcDir = path.join(cacheDir, 'rules', category);
+    for (const f of listMdFiles(srcDir)) {
+      const topic = path.basename(f, '.md');
+      const raw = fs.readFileSync(path.join(srcDir, f), 'utf8');
+      const body = transform.stripRuleFrontmatter(raw);
+
+      const cursorName = category === 'user' ? `${userPrefix}${topic}.mdc` : `${prefix}${topic}.mdc`;
+      const cursorTarget = path.join(cursorDir, cursorName);
+      const cursorStateKey = path.posix.join('.cursor/rules', cursorName);
+      tracker.writeTracked(
+        cursorTarget,
+        transform.transformForCursor(body, topic),
+        cursorStateKey
+      );
+
+      if (category === 'user') {
+        const claudeName = `${userPrefix}${topic}.md`;
+        const claudeTarget = path.join(claudeUserDir, claudeName);
+        const claudeStateKey = `~claude-user~/${claudeName}`;
+        tracker.writeTracked(claudeTarget, transform.transformForClaude(body), claudeStateKey);
+      } else {
+        const claudeName = `${prefix}${topic}.md`;
+        const claudeTarget = path.join(claudeProjDir, claudeName);
+        const claudeStateKey = path.posix.join('.claude/rules', claudeName);
+        tracker.writeTracked(claudeTarget, transform.transformForClaude(body), claudeStateKey);
+      }
+    }
   }
 
-  for (const { file, topic } of listTopics(path.join(cacheDir, 'rules', 'project'))) {
-    const body = fs.readFileSync(file, 'utf8');
-    const cursorTarget = path.join(cursorDir, `${prefix}${topic}${cursorExt}`);
-    const claudeTarget = path.join(claudeProjDir, `${prefix}${topic}${claudeExt}`);
-    tracker.writeTracked(cursorTarget, transform.transformForCursor(body, topic), path.relative(projectRoot, cursorTarget));
-    tracker.writeTracked(claudeTarget, transform.transformForClaude(body), path.relative(projectRoot, claudeTarget));
-  }
+  const staleRemoved = staleRuleCleanup(priorHashes, tracker.hashes, projectRoot, claudeUserDir);
 
-  return { written: tracker.written, drifted: tracker.drifted, hashes: tracker.hashes };
+  return { hashes: tracker.hashes, drifted: tracker.drifted, staleRemoved };
 }
 
-module.exports = { deployRules };
+module.exports = { deployRules, staleRuleCleanup, isRuleStateKey };
