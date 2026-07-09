@@ -16,5 +16,7 @@
   - Source: `articles/0005-risk-tiering.md`
 - [ ] Before delete, clear, or overwrite: determine whether targets are sole-copy user data or regenerable cache/derivation from a documented source; if sole-copy or restore is unverified, treat as irreversible and require approval first.
   - Source: `articles/0005-risk-tiering.md`
+- [ ] When scoping implementation work, name which architectural layer is in scope (UI, application state, business logic, or system/IO bridge) — avoid vague "fix the feature" without a layer.
+  - Source: `articles/software-layering-patterns.md`
 
 ## Merged
