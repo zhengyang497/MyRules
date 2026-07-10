@@ -10,6 +10,8 @@
   - Source: `articles/software-layering-patterns.md`
 - [ ] In layered codebases, lower layers must not import higher orchestration modules (e.g. utilities must not import top-level workflow files).
   - Source: `articles/software-layering-patterns.md`
+- [ ] Prefer extending an existing shared hook (schema validation, repair pipeline, persist/auto-save, debug logging, designated IO bridge) over adding a parallel implementation for the same concern.
+  - Source: `articles/architecture-proposal-review.md`
 
 ## Merged
 

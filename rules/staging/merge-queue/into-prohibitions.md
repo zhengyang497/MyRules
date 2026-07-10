@@ -12,6 +12,10 @@
   - Source: `articles/agent-controllability.md`
 - [ ] Never run a batch scan-and-apply over existing user data (merge, dedupe, cleanup, migration) without first listing what will be touched and receiving explicit approval.
   - Source: `articles/0005-risk-tiering.md`
+- [ ] Never fold drive-by refactors outside the agreed acceptance scope into required changes without explicit permission.
+  - Source: user request (2026-07-10)
+  - 中文：验收范围外的「顺手重构」未经允许不得塞进必改。
+  - Note: stricter than `ai-behavior.md` "Minimize scope of changes" — targets sneaking out-of-scope cleanup into must-fix work.
 
 ## Merged
 

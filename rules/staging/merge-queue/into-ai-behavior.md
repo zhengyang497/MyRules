@@ -18,5 +18,8 @@
   - Source: `articles/0005-risk-tiering.md`
 - [ ] When scoping implementation work, name which architectural layer is in scope (UI, application state, business logic, or system/IO bridge) — avoid vague "fix the feature" without a layer.
   - Source: `articles/software-layering-patterns.md`
+- [ ] Prefer the smallest change that meets stated acceptance criteria; when a larger set is needed, separate **must-change** items (acceptance fails without them) from **optional** refactors, and do not bundle optional work without asking.
+  - Source: `articles/architecture-proposal-review.md`
+  - Note: intended to **replace or narrow** the vague line `Minimize scope of changes` in `ai-behavior.md` on merge.
 
 ## Merged
