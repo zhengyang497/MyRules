@@ -71,3 +71,43 @@ test('syncSkills updates an already-cloned skill to the latest commit', () => {
   const content = fs.readFileSync(path.join(cursorSkillsDir, 'fixture-skill', 'SKILL.md'), 'utf8');
   assert.match(content, /v2/);
 });
+
+function makeFixtureMonorepoSkill(root) {
+  const bare = path.join(root, 'mono.git');
+  const seed = path.join(root, 'mono-seed');
+  run(root, ['init', '--bare', '-b', 'main', bare]);
+  run(root, ['clone', bare, seed]);
+  const skillDir = path.join(seed, 'skills', 'productivity', 'grill-me');
+  fs.mkdirSync(skillDir, { recursive: true });
+  fs.writeFileSync(path.join(skillDir, 'SKILL.md'), '# Grill Me Fixture');
+  fs.writeFileSync(path.join(seed, 'README.md'), '# monorepo');
+  run(seed, ['config', 'user.email', 'test@example.com']);
+  run(seed, ['config', 'user.name', 'Test']);
+  run(seed, ['add', '-A']);
+  run(seed, ['commit', '-m', 'add grill-me']);
+  run(seed, ['push', '-u', 'origin', 'HEAD:main']);
+  return bare;
+}
+
+test('syncSkills materializes a monorepo skill.path into dest root', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-skills-path-'));
+  const bare = makeFixtureMonorepoSkill(root);
+  const cache = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-cache-'));
+  fs.writeFileSync(
+    path.join(cache, 'skills-manifest.js'),
+    `module.exports = { skills: [ { name: 'grill-me', repo: ${JSON.stringify(bare)}, ref: 'main', path: 'skills/productivity/grill-me' } ] };\n`
+  );
+  const cursorSkillsDir = path.join(root, 'cursor-skills');
+  const claudeSkillsDir = path.join(root, 'claude-skills');
+
+  const results = skills.syncSkills(cache, { cursorSkillsDir, claudeSkillsDir });
+
+  assert.ok(results.every((r) => r.ok), JSON.stringify(results));
+  assert.ok(fs.existsSync(path.join(cursorSkillsDir, 'grill-me', 'SKILL.md')));
+  assert.ok(fs.existsSync(path.join(claudeSkillsDir, 'grill-me', 'SKILL.md')));
+  assert.strictEqual(fs.existsSync(path.join(cursorSkillsDir, 'grill-me', 'README.md')), false);
+  assert.match(
+    fs.readFileSync(path.join(cursorSkillsDir, 'grill-me', 'SKILL.md'), 'utf8'),
+    /Grill Me Fixture/
+  );
+});

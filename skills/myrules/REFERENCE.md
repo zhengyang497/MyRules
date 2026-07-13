@@ -15,7 +15,7 @@ Vocabulary (used throughout this skill):
 | Rules | `rules/user/*.md`, `rules/project/*.md` | `.cursor/rules/myrules-*.mdc`, `.claude/rules/myrules-*.md` | One topic per file; `project/` may use `agents:` frontmatter |
 | Sub-agents | same sources (filtered by `agents:`) | `.cursor/agents/myrules-*.md`, `.claude/agents/myrules-*.md` | **One-way deploy** — edit cache sources, not agent files; `export` does not reverse-merge agents |
 | Hooks | `hooks/user/*.js`, `hooks/project/*.js` | Cursor: `hooks.json` + `myrules-*.js`; Claude: `myrules-hook-*.md` convention docs only | See seed hooks `session-log`, `session-start-context` |
-| External skills | `skills-manifest.js` | `~/.cursor/skills/<name>/`, `~/.claude/skills/<name>/` | Never list `myrules` here |
+| External skills | `skills-manifest.js` | `~/.cursor/skills/<name>/`, `~/.claude/skills/<name>/` | Never list `myrules` here; optional `path` extracts a monorepo subfolder |
 | Bootstrap skill | `skills/myrules/*` | Project `.cursor/skills/myrules/` (and `.claude/skills/myrules/`) | Via `install-skill.js` |
 | Rule authoring (meta) | `rules/meta/*.md` | *(not deployed)* | Read in cache before editing `user/` / `project/` |
 | Project context | — | `<project>/.myrules-context.md` | User writes per project; not synced |
