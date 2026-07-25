@@ -13,6 +13,7 @@ const ensureCache = require('./lib/ensure-cache');
 const prepareProject = require('./lib/prepare-project');
 const hooksDeploy = require('./lib/hooks-deploy');
 const hooksState = require('./lib/hooks-state');
+const opencodeConfig = require('./lib/opencode-config-deploy');
 
 function parseArgs(argv) {
   const args = { dryRun: false, prune: false, project: null, all: false, force: false };
@@ -68,8 +69,14 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
     priorHashes: current.deployedHashes,
     manifest,
     ...(opts.claudeUserDir ? { claudeUserDir: opts.claudeUserDir } : {}),
+    ...(opts.opencodeUserDir ? { opencodeUserDir: opts.opencodeUserDir } : {}),
   });
   reportDrifted('file(s)', result.drifted);
+
+  const ocConfigResult = opencodeConfig.deployProjectConfig(cacheDir, projectRoot, {
+    manifest,
+    priorEntries: (current.deployedOpencodeInstructions && current.deployedOpencodeInstructions.project) || [],
+  });
 
   const agentsResult = deployAgents.deployAgents(cacheDir, projectRoot, {
     force: opts.force,
@@ -111,6 +118,10 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
     deployedHashes: { ...result.hashes, ...hooksResult.deployedHashes },
     deployedAgentHashes: agentsResult.hashes,
     deployedHooks: hooksResult.deployedHooks,
+    deployedOpencodeInstructions: {
+      project: ocConfigResult.instructions,
+      user: (current.deployedOpencodeInstructions && current.deployedOpencodeInstructions.user) || [],
+    },
   });
   registry.registerProject(projectRoot, opts.homeDir || require('node:os').homedir());
 }
@@ -154,6 +165,19 @@ function run(opts) {
       deployedHooks: userHooksResult.deployedHooks,
       deployedHashes: userHooksResult.deployedHashes,
     });
+  }
+
+  if (!opts.skipUserConfig) {
+    const priorUserState = hooksState.readUserHooksState(homeDir);
+    const priorUserInstr = (priorUserState.deployedOpencodeInstructions || {}).user || [];
+    const ocUserResult = opencodeConfig.deployUserConfig(cacheDir, {
+      homeDir,
+      manifest,
+      priorEntries: priorUserInstr,
+    });
+    priorUserState.deployedOpencodeInstructions = priorUserState.deployedOpencodeInstructions || {};
+    priorUserState.deployedOpencodeInstructions.user = ocUserResult.instructions;
+    hooksState.writeUserHooksState(homeDir, priorUserState);
   }
 
   if (opts.all) {

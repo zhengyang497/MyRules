@@ -43,7 +43,9 @@ function baseOpts(project, cache) {
     force: false,
     skipPull: true,
     skipSkills: true,
+    skipUserConfig: true,
     claudeUserDir: path.join(project, '.fake-claude-home', 'rules'),
+    opencodeUserDir: path.join(project, '.fake-opencode-home', 'rules'),
     homeDir: path.join(project, '.fake-home'),
   };
 }
@@ -124,4 +126,18 @@ test('push.run reports committed:false when the cache has no changes', () => {
   const pushCli = require('../tools/sync/push');
   const result = pushCli.run({ cacheDir: cache, message: 'no-op' });
   assert.strictEqual(result.committed, false);
+});
+
+test('sync.run deploys opencode.json with instructions glob and writes it to state', () => {
+  const cache = makeCacheRepo();
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-oc-sync-project-'));
+  installSkill(project);
+
+  syncCli.run(baseOpts(project, cache));
+
+  const config = JSON.parse(fs.readFileSync(path.join(project, 'opencode.json'), 'utf8'));
+  assert.deepStrictEqual(config.instructions, ['.opencode/rules/myrules-*.md']);
+
+  const s = state.readState(project);
+  assert.deepStrictEqual(s.deployedOpencodeInstructions.project, ['.opencode/rules/myrules-*.md']);
 });
