@@ -22,11 +22,15 @@ function fakeClaudeUserDir(project) {
   return path.join(project, '.fake-claude-home', 'rules');
 }
 
+function fakeOpencodeUserDir(project) {
+  return path.join(project, '.fake-opencode-home', 'rules');
+}
+
 test('deployRules writes Cursor and Claude files for user and project rules', () => {
   const cache = makeCache();
   const project = makeProject();
   const claudeUserDir = fakeClaudeUserDir(project);
-  const result = deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir });
+  const result = deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir, opencodeUserDir: fakeOpencodeUserDir(project) });
 
   const cursorUser = path.join(project, '.cursor', 'rules', 'myrules-user-preferences.mdc');
   const cursorProject = path.join(project, '.cursor', 'rules', 'myrules-testing.mdc');
@@ -47,7 +51,7 @@ test('deployRules skips a target whose current content does not match the last r
   const cache = makeCache();
   const project = makeProject();
   const claudeUserDir = fakeClaudeUserDir(project);
-  const first = deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir });
+  const first = deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir, opencodeUserDir: fakeOpencodeUserDir(project) });
 
   const cursorProjectFile = path.join(project, '.cursor', 'rules', 'myrules-testing.mdc');
   fs.writeFileSync(cursorProjectFile, 'hand-edited content');
@@ -61,7 +65,7 @@ test('deployRules with force:true overwrites drifted files', () => {
   const cache = makeCache();
   const project = makeProject();
   const claudeUserDir = fakeClaudeUserDir(project);
-  const first = deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir });
+  const first = deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir, opencodeUserDir: fakeOpencodeUserDir(project) });
 
   const cursorProjectFile = path.join(project, '.cursor', 'rules', 'myrules-testing.mdc');
   fs.writeFileSync(cursorProjectFile, 'hand-edited content');
@@ -79,7 +83,7 @@ test('deployRules strips project frontmatter from rules artifacts', () => {
   );
   const project = makeProject();
   const claudeUserDir = fakeClaudeUserDir(project);
-  deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir });
+  deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir, opencodeUserDir: fakeOpencodeUserDir(project) });
 
   const cursorProject = fs.readFileSync(path.join(project, '.cursor', 'rules', 'myrules-testing.mdc'), 'utf8');
   const claudeProject = fs.readFileSync(path.join(project, '.claude', 'rules', 'myrules-testing.md'), 'utf8');
@@ -110,7 +114,7 @@ test('deployRules removes stale rule artifacts after ai-behavior migration to us
     '~claude-user~/myrules-ai-behavior.md': 'old',
   };
 
-  deploy.deployRules(cache, project, { force: false, priorHashes, claudeUserDir });
+  deploy.deployRules(cache, project, { force: false, priorHashes, claudeUserDir, opencodeUserDir: fakeOpencodeUserDir(project) });
 
   assert.strictEqual(fs.existsSync(staleCursor), false);
   assert.strictEqual(fs.existsSync(staleClaudeProj), false);
