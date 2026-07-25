@@ -15,6 +15,8 @@ function buildBlock(manifest) {
     `.claude/rules/${prefix}*`,
     `.cursor/agents/${agentPrefix}*`,
     `.claude/agents/${agentPrefix}*`,
+    `.opencode/rules/${prefix}*`,
+    `.opencode/agents/${agentPrefix}*`,
     `.cursor/hooks/${prefix}*`,
     `${backupDir}/`,
     `${stateFile}`,

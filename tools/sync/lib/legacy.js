@@ -42,6 +42,16 @@ function scanLegacy(projectRoot, managedPrefix, manifest = {}) {
     }
   }
 
+  const opencodeDir = paths.getOpencodeProjectRulesDir(projectRoot);
+  if (fs.existsSync(opencodeDir)) {
+    for (const f of fs.readdirSync(opencodeDir)) {
+      const full = path.join(opencodeDir, f);
+      if (fs.statSync(full).isFile() && f.endsWith('.md') && !f.startsWith(managedPrefix)) {
+        found.push(full);
+      }
+    }
+  }
+
   const legacyCursorrules = path.join(projectRoot, '.cursorrules');
   if (fs.existsSync(legacyCursorrules)) found.push(legacyCursorrules);
 

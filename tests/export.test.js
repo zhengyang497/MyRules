@@ -79,3 +79,19 @@ test('exportProject compares project sources without frontmatter against deploye
   const report = exportLib.exportProject(cache, project, { claudeUserDir, opencodeUserDir: fakeOpencodeUserDir(project) });
   assert.strictEqual(report.toUpdate.length, 0);
 });
+
+test('exportProject detects a hand-edited OpenCode rule and maps it to rules/project/<topic>.md', () => {
+  const cache = makeCache();
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-oc-export-project-'));
+  const claudeUserDir = fakeClaudeUserDir(project);
+  const opencodeUserDir = fakeOpencodeUserDir(project);
+  deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir, opencodeUserDir });
+
+  const deployedFile = path.join(project, '.opencode', 'rules', 'myrules-testing.md');
+  fs.writeFileSync(deployedFile, fs.readFileSync(deployedFile, 'utf8').replace('write tests', 'write ALL the tests'));
+
+  const report = exportLib.exportProject(cache, project, { claudeUserDir, opencodeUserDir });
+  const match = report.toUpdate.find((u) => u.deployedFile === deployedFile);
+  assert.ok(match);
+  assert.strictEqual(match.sourceFile, path.join(cache, 'rules', 'project', 'testing.md'));
+});

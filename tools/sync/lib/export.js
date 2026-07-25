@@ -28,12 +28,16 @@ function exportProject(cacheDir, projectRoot, opts = {}) {
     cursorDir = paths.getCursorRulesDir(projectRoot),
     claudeProjDir = paths.getClaudeProjectRulesDir(projectRoot),
     claudeUserDir = paths.getClaudeUserRulesDir(),
+    opencodeUserDir = paths.getOpencodeUserRulesDir(),
   } = opts;
+  const opencodeProjDir = paths.getOpencodeProjectRulesDir(projectRoot);
 
   const scans = [
     { dir: cursorDir, ext: manifest.cursor.extension },
     { dir: claudeProjDir, ext: manifest.claude.extension },
     { dir: claudeUserDir, ext: manifest.claude.extension },
+    { dir: opencodeProjDir, ext: manifest.opencode.extension },
+    { dir: opencodeUserDir, ext: manifest.opencode.extension },
   ];
 
   for (const { dir, ext } of scans) {

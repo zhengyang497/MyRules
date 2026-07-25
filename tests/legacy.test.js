@@ -61,3 +61,16 @@ test('pruneLegacy moves files into a timestamped backup dir, preserving relative
   assert.strictEqual(fs.readFileSync(archived, 'utf8'), 'legacy content');
   assert.ok(backupRoot.startsWith(path.join(project, '.myrules-backup')));
 });
+
+test('scanLegacy finds non-managed .opencode/rules/*.md files', () => {
+  const project = tmpProject();
+  write(path.join(project, '.opencode', 'rules', 'myrules-testing.md'));
+  write(path.join(project, '.opencode', 'rules', 'old-style.md'));
+  write(path.join(project, '.opencode', 'agents', 'old-agent.md'));
+
+  const found = legacy.scanLegacy(project, 'myrules-');
+  const relative = found.map((f) => path.relative(project, f)).sort();
+  assert.ok(relative.includes(path.join('.opencode', 'rules', 'old-style.md')));
+  // agents are not rules - not scanned
+  assert.ok(!relative.some((f) => f.includes('agents')));
+});

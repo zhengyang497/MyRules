@@ -53,3 +53,14 @@ test('ensureGitignore includes sub-agent artifact paths', () => {
   assert.match(content, /\.cursor\/agents\/myrules-\*/);
   assert.match(content, /\.claude\/agents\/myrules-\*/);
 });
+
+test('buildBlock includes opencode rules and agents', () => {
+  const manifest = {
+    managedPrefix: 'myrules-',
+    prune: { backupDir: '.myrules-backup' },
+    agents: { prefix: 'myrules-' },
+  };
+  const block = gitignore.buildBlock(manifest);
+  assert.match(block, /\.opencode\/rules\/myrules-\*/);
+  assert.match(block, /\.opencode\/agents\/myrules-\*/);
+});
