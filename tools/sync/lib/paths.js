@@ -66,6 +66,30 @@ function getUserHooksStateFilePath(homeDir = os.homedir()) {
   return path.join(getCacheDir(homeDir), '.user-hooks-state.json');
 }
 
+function getOpencodeProjectRulesDir(projectRoot) {
+  return path.join(projectRoot, '.opencode', 'rules');
+}
+
+function getOpencodeUserRulesDir(homeDir = os.homedir()) {
+  return path.join(homeDir, '.config', 'opencode', 'rules');
+}
+
+function getOpencodeUserConfigDir(homeDir = os.homedir()) {
+  return path.join(homeDir, '.config', 'opencode');
+}
+
+function getOpencodeProjectConfigFile(projectRoot) {
+  return path.join(projectRoot, 'opencode.json');
+}
+
+function getOpencodeUserConfigFile(homeDir = os.homedir()) {
+  return path.join(homeDir, '.config', 'opencode', 'opencode.json');
+}
+
+function getOpencodeAgentsDir(projectRoot) {
+  return path.join(projectRoot, '.opencode', 'agents');
+}
+
 module.exports = {
   getCacheDir,
   getProjectRoot,
@@ -83,4 +107,10 @@ module.exports = {
   getCursorUserHooksDir,
   getCursorUserHooksConfig,
   getUserHooksStateFilePath,
+  getOpencodeProjectRulesDir,
+  getOpencodeUserRulesDir,
+  getOpencodeUserConfigDir,
+  getOpencodeProjectConfigFile,
+  getOpencodeUserConfigFile,
+  getOpencodeAgentsDir,
 };

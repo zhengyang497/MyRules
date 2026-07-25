@@ -62,3 +62,33 @@ test('getUserHooksStateFilePath joins homeDir, .myrules, and the state filename'
   const result = paths.getUserHooksStateFilePath('/home/alice');
   assert.strictEqual(result, path.join('/home/alice', '.myrules', '.user-hooks-state.json'));
 });
+
+test('getOpencodeProjectRulesDir joins project root and .opencode/rules', () => {
+  const result = paths.getOpencodeProjectRulesDir('/tmp/myproject');
+  assert.strictEqual(result, path.join('/tmp/myproject', '.opencode', 'rules'));
+});
+
+test('getOpencodeUserRulesDir joins homeDir and .config/opencode/rules', () => {
+  const result = paths.getOpencodeUserRulesDir('/home/alice');
+  assert.strictEqual(result, path.join('/home/alice', '.config', 'opencode', 'rules'));
+});
+
+test('getOpencodeUserConfigDir joins homeDir and .config/opencode', () => {
+  const result = paths.getOpencodeUserConfigDir('/home/alice');
+  assert.strictEqual(result, path.join('/home/alice', '.config', 'opencode'));
+});
+
+test('getOpencodeProjectConfigFile returns opencode.json at project root', () => {
+  const result = paths.getOpencodeProjectConfigFile('/tmp/myproject');
+  assert.strictEqual(result, path.join('/tmp/myproject', 'opencode.json'));
+});
+
+test('getOpencodeUserConfigFile joins homeDir and .config/opencode/opencode.json', () => {
+  const result = paths.getOpencodeUserConfigFile('/home/alice');
+  assert.strictEqual(result, path.join('/home/alice', '.config', 'opencode', 'opencode.json'));
+});
+
+test('getOpencodeAgentsDir joins project root and .opencode/agents', () => {
+  const result = paths.getOpencodeAgentsDir('/tmp/myproject');
+  assert.strictEqual(result, path.join('/tmp/myproject', '.opencode', 'agents'));
+});

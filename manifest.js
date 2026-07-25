@@ -1,7 +1,7 @@
 module.exports = {
   version: 1,
   repo: "https://github.com/zhengyang497/MyRules.git",
-  platforms: ["cursor", "claude"],
+  platforms: ["cursor", "claude", "opencode"],
 
   managedPrefix: "myrules-",
 
@@ -52,6 +52,18 @@ module.exports = {
     projectRulesDir: ".claude/rules",
     extension: ".md",
     hookInfix: "hook-",
+  },
+
+  opencode: {
+    projectRulesDir: ".opencode/rules",
+    userRulesDir: "~/.config/opencode/rules",
+    userConfigDir: "~/.config/opencode",
+    projectConfigFile: "opencode.json",
+    userConfigFile: "~/.config/opencode/opencode.json",
+    extension: ".md",
+    agentsDir: ".opencode/agents",
+    projectInstructionsGlob: ".opencode/rules/myrules-*.md",
+    userInstructionsGlob: "rules/myrules-user-*.md",
   },
 
   agents: {
