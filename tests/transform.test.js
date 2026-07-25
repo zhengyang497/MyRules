@@ -110,3 +110,56 @@ test('transformForAgent builds Claude agent with permissionMode plan for readonl
   });
   assert.match(implementer, /permissionMode: "default"/);
 });
+
+test('transformForOpencode returns the body unchanged', () => {
+  const out = transform.transformForOpencode('# Hello\n\n- one');
+  assert.strictEqual(out, '# Hello\n\n- one');
+});
+
+test('transformForAgent with platform opencode emits description, mode subagent, and permission deny for readonly role', () => {
+  const out = transform.transformForAgent({
+    roleMeta: { description: 'Reviews code', readonly: true, model: 'inherit' },
+    roleId: 'reviewer',
+    agentName: 'myrules-reviewer',
+    userBodies: [{ topic: 'preferences', body: '- be concise' }],
+    projectBodies: [{ topic: 'testing', body: '- write tests' }],
+    platform: 'opencode',
+  });
+  assert.match(out, /description: "Reviews code"/);
+  assert.match(out, /mode: subagent/);
+  assert.match(out, /edit: deny/);
+  assert.match(out, /bash: deny/);
+  assert.doesNotMatch(out, /^\s*name:/m);
+  assert.doesNotMatch(out, /model:/);
+  assert.match(out, /## user: preferences/);
+  assert.match(out, /## project: testing/);
+});
+
+test('transformForAgent with platform opencode omits permission for non-readonly role', () => {
+  const out = transform.transformForAgent({
+    roleMeta: { description: 'Implements code', readonly: false, model: 'inherit' },
+    roleId: 'implementer',
+    agentName: 'myrules-implementer',
+    userBodies: [],
+    projectBodies: [],
+    platform: 'opencode',
+  });
+  assert.match(out, /mode: subagent/);
+  assert.doesNotMatch(out, /permission:/);
+  assert.doesNotMatch(out, /model:/);
+});
+
+test('transformForAgent cursor and claude outputs retain name and model fields after opencode refactor', () => {
+  for (const platform of ['cursor', 'claude']) {
+    const out = transform.transformForAgent({
+      roleMeta: { description: 'Does work.', readonly: true, model: 'inherit' },
+      roleId: 'reviewer',
+      agentName: 'myrules-reviewer',
+      userBodies: [],
+      projectBodies: [],
+      platform,
+    });
+    assert.match(out, /name: "myrules-reviewer"/, `${platform} missing name field`);
+    assert.match(out, /model: "inherit"/, `${platform} missing model field`);
+  }
+});

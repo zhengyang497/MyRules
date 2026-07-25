@@ -42,6 +42,10 @@ function transformForClaude(body) {
   return body;
 }
 
+function transformForOpencode(body) {
+  return body;
+}
+
 function stripCursorFrontmatter(content) {
   const match = content.match(/^---\n[\s\S]*?\n---\n\n([\s\S]*)$/);
   return match ? match[1] : content;
@@ -66,18 +70,27 @@ function yamlLine(key, value) {
 
 function transformForAgent({ roleMeta, roleId, agentName, userBodies, projectBodies, platform }) {
   const body = composeAgentBody(userBodies, projectBodies);
-  const lines = [
-    '---',
-    yamlLine('name', agentName),
-    yamlLine('description', roleMeta.description),
-    yamlLine('model', roleMeta.model || 'inherit'),
-  ];
+  const lines = ['---'];
 
   if (platform === 'cursor') {
+    lines.push(yamlLine('name', agentName));
+    lines.push(yamlLine('description', roleMeta.description));
+    lines.push(yamlLine('model', roleMeta.model || 'inherit'));
     lines.push(yamlLine('readonly', roleMeta.readonly === true));
   } else if (platform === 'claude') {
+    lines.push(yamlLine('name', agentName));
+    lines.push(yamlLine('description', roleMeta.description));
+    lines.push(yamlLine('model', roleMeta.model || 'inherit'));
     const permissionMode = roleMeta.readonly ? 'plan' : 'default';
     lines.push(yamlLine('permissionMode', permissionMode));
+  } else if (platform === 'opencode') {
+    lines.push(yamlLine('description', roleMeta.description));
+    lines.push('mode: subagent');
+    if (roleMeta.readonly) {
+      lines.push('permission:');
+      lines.push('  edit: deny');
+      lines.push('  bash: deny');
+    }
   }
 
   lines.push('---', '', body);
@@ -97,6 +110,7 @@ function transformHookForClaude(meta, name) {
 module.exports = {
   transformForCursor,
   transformForClaude,
+  transformForOpencode,
   stripCursorFrontmatter,
   transformHookForClaude,
   parseRuleFrontmatter,
