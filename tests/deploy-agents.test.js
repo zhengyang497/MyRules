@@ -132,3 +132,36 @@ test('deployAgents cursor and claude outputs are byte-identical to pre-opencode 
     '---\nname: "myrules-planner"\ndescription: "Plans work."\nmodel: "inherit"\npermissionMode: "plan"\n---\n\n## user: preferences\n\n# Preferences\n\n- be concise\n\n## project: planning\n\n# Planning\n\n- clarify first'
   );
 });
+
+test('deployAgents writes OpenCode agent files with mode: subagent and no name field', () => {
+  const cache = makeCache();
+  const project = makeProject();
+  const result = deployAgents.deployAgents(cache, project, { force: false, priorAgentHashes: {} });
+
+  for (const role of ['planner', 'implementer', 'reviewer']) {
+    const ocFile = path.join(project, '.opencode', 'agents', `myrules-${role}.md`);
+    assert.ok(fs.existsSync(ocFile), `missing ${ocFile}`);
+  }
+
+  const planner = fs.readFileSync(path.join(project, '.opencode', 'agents', 'myrules-planner.md'), 'utf8');
+  assert.match(planner, /mode: subagent/);
+  assert.match(planner, /edit: deny/);
+  assert.doesNotMatch(planner, /^\s*name:/m);
+  assert.doesNotMatch(planner, /model:/);
+
+  const implementer = fs.readFileSync(path.join(project, '.opencode', 'agents', 'myrules-implementer.md'), 'utf8');
+  assert.match(implementer, /mode: subagent/);
+  assert.doesNotMatch(implementer, /permission:/);
+});
+
+test('deployAgents removes stale OpenCode agent files', () => {
+  const cache = makeCache();
+  const project = makeProject();
+  const ocDir = path.join(project, '.opencode', 'agents');
+  fs.mkdirSync(ocDir, { recursive: true });
+  const staleFile = path.join(ocDir, 'myrules-obsolete.md');
+  fs.writeFileSync(staleFile, 'old role');
+
+  deployAgents.deployAgents(cache, project, { force: false, priorAgentHashes: {} });
+  assert.strictEqual(fs.existsSync(staleFile), false);
+});

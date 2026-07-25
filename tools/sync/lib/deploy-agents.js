@@ -72,8 +72,10 @@ function deployAgents(cacheDir, projectRoot, opts = {}) {
 
   const cursorDir = paths.getCursorAgentsDir(projectRoot);
   const claudeDir = paths.getClaudeAgentsDir(projectRoot);
+  const opencodeDir = paths.getOpencodeAgentsDir(projectRoot);
   fs.mkdirSync(cursorDir, { recursive: true });
   fs.mkdirSync(claudeDir, { recursive: true });
+  fs.mkdirSync(opencodeDir, { recursive: true });
 
   const tracker = drift.createTracker({ force, priorHashes });
   const missingAgents = scanProjectMissingAgents(cacheDir);
@@ -114,11 +116,28 @@ function deployAgents(cacheDir, projectRoot, opts = {}) {
       }),
       claudeStateKey
     );
+
+    const opencodeFile = `${agentName}.md`;
+    const opencodeTarget = path.join(opencodeDir, opencodeFile);
+    const opencodeStateKey = path.posix.join('.opencode/agents', opencodeFile);
+    tracker.writeTracked(
+      opencodeTarget,
+      transform.transformForAgent({
+        roleMeta,
+        roleId,
+        agentName,
+        userBodies,
+        projectBodies,
+        platform: 'opencode',
+      }),
+      opencodeStateKey
+    );
   }
 
   const staleRemoved = [
     ...staleAgentCleanup(cursorDir, prefix, roleIds, '.md'),
     ...staleAgentCleanup(claudeDir, prefix, roleIds, '.md'),
+    ...staleAgentCleanup(opencodeDir, prefix, roleIds, '.md'),
   ];
 
   for (const key of Object.keys(priorHashes)) {
