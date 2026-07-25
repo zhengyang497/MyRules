@@ -2,11 +2,9 @@
 
 ## Candidates
 
-- [ ] When reviewing an implementation plan or diff, flag dependency-direction violations (logic importing UI, bypassing the IO/bridge layer, lower layers importing orchestration) and parallel reinvention of an existing shared path (validation, persistence, logging) as blocking issues — not style nits.
-  - Source: `articles/architecture-proposal-review.md`
-- [ ] If a change set mixes required work for the stated acceptance criteria with opportunistic refactors, call that out and recommend splitting; do not treat "many files" alone as failure when all files serve one criterion.
-  - Source: `articles/architecture-proposal-review.md`
+<!-- empty after 2026-07-25 merge -->
 
 ## Merged
 
-<!-- Move items here after folding into review.md, with date -->
+- [x] 2026-07-25 — Folded (deduped/tightened) into `rules/project/review.md`: blocking dependency/reuse issues, split required vs opportunistic work, reject "looks fine" without evidence. Adversarial self-review before delivery moved to `rules/user/behavior.md` (all roles).
+  - Sources: `architecture-proposal-review.md`, `agents-md-first-principles-adversarial-review.md`, `reddit-claude-prompt-collaboration-patterns.md`

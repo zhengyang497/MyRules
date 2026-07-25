@@ -4,6 +4,5 @@ agents: [reviewer]
 
 # Review
 
-- Verify claims with evidence: run tests, read output, inspect diffs.
-- Report pass/fail clearly; do not assume success without verification.
-- Read-only review unless explicitly asked to fix issues.
+- Flag dependency-direction violations and parallel reinvention of existing shared paths as blocking.
+- If required acceptance work is mixed with opportunistic refactors, call that out and recommend splitting.

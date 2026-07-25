@@ -9,9 +9,11 @@ module.exports = {
     paths: [
       "CLAUDE.md",
       ".claude/CLAUDE.md",
+      "~/.claude/CLAUDE.md",
       "CLAUDE.local.md",
       "AGENTS.md",
       "~/.claude/projects/**/memory/**",
+      "~/.claude/memory/**",
     ],
   },
 

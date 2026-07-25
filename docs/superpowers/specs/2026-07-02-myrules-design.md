@@ -30,16 +30,17 @@ MyRules is the **primary rules source** for personal projects. Legacy project ru
 - Pruning or modifying non-rules project files
 - Automatic sync on every rule edit (still an explicit, user-run command — mitigated by `--all`, see below)
 
-## Platform Verification (2026-07-02)
+## Platform Verification (2026-07-02, revised 2026-07-25)
 
-Verified against official docs:
+Verified against official docs and confirmed by binary inspection of Claude Code v2.1.179 (`claude.exe` string extraction):
 
 | Mechanism | Cursor | Claude Code |
 |-----------|--------|-------------|
 | Project rules (file-backed, auto-loaded) | `.cursor/rules/*.mdc` with YAML frontmatter | `.claude/rules/*.md` |
 | User/global rules (file-backed) | **Not available** — User Rules live in Settings UI only | `~/.claude/rules/*.md` |
-| Project context / memory (protect) | `CLAUDE.md`, `AGENTS.md` (Cursor reads both) | `CLAUDE.md`, `CLAUDE.local.md`, `~/.claude/projects/**/memory/**` |
+| Project context / memory (protect) | `CLAUDE.md`, `AGENTS.md` (Cursor reads both) | `CLAUDE.md`, `.claude/CLAUDE.md`, `~/.claude/CLAUDE.md`, `CLAUDE.local.md`, `~/.claude/projects/**/memory/**`, `~/.claude/memory/**` |
 | Skills discovery | `~/.cursor/skills/`, `.cursor/skills/` | `~/.claude/skills/`, `.claude/skills/` |
+| Native hooks | `hooks.json` (dedicated file) | `settings.json` under `hooks` key (shared file - also holds `env`, `permissions`, etc.) |
 | Plain `.md` in `.cursor/rules/` | Ignored (must be `.mdc`) | N/A |
 
 **Design correction:** Cursor user-level content from `rules/user/` deploys as per-project `.cursor/rules/myrules-user-*.mdc` with `alwaysApply: true`, not to Cursor Settings User Rules.
@@ -318,9 +319,10 @@ Updated by `tools/sync/` on successful `sync`, `init`, dry-run, and prune. `myru
 
 Never read for export merge, never write, never delete:
 
-- `CLAUDE.md`, `.claude/CLAUDE.md`, `CLAUDE.local.md`
+- `CLAUDE.md`, `.claude/CLAUDE.md`, `~/.claude/CLAUDE.md`, `CLAUDE.local.md`
 - `AGENTS.md`
-- `~/.claude/projects/**/memory/**` (Claude auto memory)
+- `~/.claude/projects/**/memory/**` (Claude project-scoped auto memory)
+- `~/.claude/memory/**` (Claude global memory)
 - Any `.cursor/rules/*` or `.claude/rules/*` file whose basename does not start with `myrules-` **unless** `--prune-legacy-rules` is explicitly used (then legacy rules are archived, not protect-listed)
 
 ## Legacy Rule Policy (Option 2 — Primary Source)

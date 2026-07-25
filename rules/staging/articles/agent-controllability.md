@@ -1,9 +1,9 @@
-# Article: Agent 可控性 — 别在没验证时说「已完成」
+# Article: Agent 可控性 - 别在没验证时说「已完成」
 
 - **Source**: 用户提供的短文（Agent 从「更聪明」转向「更可控」）
 - **Date**: 2026-07-05
-- **Status**: abstracted
-- **Target files**: prohibitions, ai-behavior, testing, output-standards
+- **Status**: merged (2026-07-25 into `rules/user|project`)
+- **Target files**: behavior, testing, communication
 
 ## Core ideas (你的归纳)
 
@@ -25,9 +25,9 @@
 
 ## Candidate rule lines (English)
 
-See `merge-queue/into-*.md` — extracted from this article.
+See `merge-queue/into-*.md` - extracted from this article.
 
 ## Merge notes
 
 - Overlaps: superpowers `verification-before-completion`, `brainstorming` (design before code). MyRules rules = personal stricter layer, not duplicate full superpowers text.
-- Prefer strengthening existing four formal files over new topics.
+- Prefer strengthening existing formal files over new topics.

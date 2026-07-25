@@ -2,9 +2,9 @@
 
 ## Candidates
 
-- [ ] Before claiming work is complete, run applicable checks (tests, lint, build, or the project's verification command) and cite pass/fail in the response.
-  - Source: `articles/agent-controllability.md`
-- [ ] If checks cannot be run, say so explicitly and list what remains unverified — do not imply the change is safe.
-  - Source: `articles/agent-controllability.md`
+<!-- empty after 2026-07-25 merge -->
 
 ## Merged
+
+- [x] 2026-07-25 — Folded (deduped/tightened) into `rules/project/testing.md`: run checks before claiming done; do not equate runnable code with requirements met.
+  - Sources: `agent-controllability.md`, `ai-says-done-vs-requirements.md`

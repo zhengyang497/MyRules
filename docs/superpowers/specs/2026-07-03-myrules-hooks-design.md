@@ -1,12 +1,16 @@
 # MyRules Hooks Design Spec
 
-**Date:** 2026-07-03
+**Date:** 2026-07-03 (revised 2026-07-25)
 **Status:** Draft for review
 **Scope:** v1 — add a new **hooks** content type to MyRules (extends `docs/superpowers/specs/2026-07-02-myrules-design.md`; does not modify it)
 
+## Revision Note (2026-07-25)
+
+Post-implementation review of Claude Code v2.1.179 (binary string extraction) confirmed that Claude Code has a full native hooks mechanism via `settings.json` under the `hooks` key, with event names, I/O schemas, and execution semantics that parallel Cursor's but differ in detail (see [Platform Verification - Claude Code](#platform-verification---claude-code)). The original spec described Claude-side hooks as prose-only with no automatic execution — this was a conservative v1 decision, not a permanent limitation. This revision documents the native mechanism and outlines a future implementation plan (see [Future: Claude Native Hooks](#future-claude-native-hooks)), without changing the current v1 behavior (prose-only Claude-side hooks remain the default).
+
 ## Summary
 
-MyRules gains a second content type alongside `rules/`: **hooks** — conventions for the agent to read or write specific files at specific moments in a session. On Cursor, a hook is deployed as real automation: an entry in `hooks.json` plus a small standalone Node script that Cursor executes automatically at the declared lifecycle event. On Claude Code, the same convention is deployed as a plain-language rule document — Claude follows it because the rule is loaded as context, not because of any technical trigger. Hooks are authored once in `~/.myrules/hooks/` and synced the same way rules are: gitignored generated artifacts in consumer projects, source of truth in the cache repo.
+MyRules gains a second content type alongside `rules/`: **hooks** — conventions for the agent to read or write specific files at specific moments in a session. On Cursor, a hook is deployed as real automation: an entry in `hooks.json` plus a small standalone Node script that Cursor executes automatically at the declared lifecycle event. On Claude Code, the same convention is currently deployed as a plain-language rule document (Claude follows it because the rule is loaded as context, not because of any technical trigger). Claude Code **does** have its own native hooks mechanism (`settings.json` under the `hooks` key), and a future revision of MyRules will wire hooks into it for automatic execution on both platforms — see [Future: Claude Native Hooks](#future-claude-native-hooks). Hooks are authored once in `~/.myrules/hooks/` and synced the same way rules are: gitignored generated artifacts in consumer projects, source of truth in the cache repo.
 
 Hooks support two scopes — **project** (this repo only) and **user** (every project on this machine) — mirroring `rules/user/` vs `rules/project/`. Unlike rules, this split maps to a *real* mechanism on the Cursor side: Cursor natively supports a global `~/.cursor/hooks.json`, so a user-scoped hook genuinely deploys once and applies everywhere, with no per-project workaround needed.
 
@@ -14,7 +18,7 @@ Hooks support two scopes — **project** (this repo only) and **user** (every pr
 
 1. Let the user define "at moment X, read/write file Y" conventions once, synced across devices via the existing MyRules cache/push/pull flow.
 2. Cursor: real automatic execution via `hooks.json` + a Node script per hook.
-3. Claude Code: the same convention expressed as prose in a rule file; no automatic execution (explicit product decision, see Decision Log).
+3. Claude Code (v1): the same convention expressed as prose in a rule file; no automatic execution. **Future**: wire into Claude Code's native `settings.json` hooks for automatic execution (see [Future: Claude Native Hooks](#future-claude-native-hooks)).
 4. Support both project-scoped and user-scoped hooks.
 5. Deploy artifacts are gitignored by default, consistent with how rules are already treated — source lives in `~/.myrules/hooks/`, the project copy is a regenerable build output.
 
@@ -22,7 +26,7 @@ Hooks support two scopes — **project** (this repo only) and **user** (every pr
 
 - Gating/blocking hook types (permission allow/deny — e.g. `beforeShellExecution`, `preToolUse`). v1 hooks only read/write files and inject context; they never approve or deny an agent action.
 - Prompt-type (LLM-evaluated) Cursor hooks.
-- Any automatic execution on the Claude side (rules-doc convention only, per explicit user decision).
+- Any automatic execution on the Claude side in **v1** (rules-doc convention only). Native hooks deployment is planned for a future revision (see [Future: Claude Native Hooks](#future-claude-native-hooks)).
 - Reverse-export / hybrid-edit merge for the generated Claude-side prose file (one-way generation only).
 - Team/Enterprise hook distribution — MyRules remains a personal, single-user tool.
 - Codex support (unchanged from the main MyRules scope).
@@ -43,7 +47,87 @@ Verified against Cursor's official hooks documentation (`cursor.com/docs/hooks`,
 | Env vars available to scripts | `CURSOR_PROJECT_DIR` (workspace root, always present), `CURSOR_VERSION`, etc. |
 | Windows compatibility | Confirmed no shebang/chmod needed; `"command": "node <path>"` is parsed as a shell string and runs identically on Windows/macOS/Linux. |
 
-Claude Code does have its own native hook mechanism (`.claude/settings.json`), which Cursor can even import (see "Third Party Hooks"). MyRules deliberately does **not** use or manage it in v1 — see Decision Log for why.
+Claude Code also has its own native hook mechanism (`settings.json` under the `hooks` key). See [Platform Verification - Claude Code](#platform-verification---claude-code) below for the full I/O contract. MyRules does **not** use it in v1 (prose-only convention); a future revision will wire into it - see [Future: Claude Native Hooks](#future-claude-native-hooks).
+
+## Platform Verification - Claude Code (2026-07-25)
+
+Verified by binary string extraction of Claude Code v2.1.179 (`claude.exe`); cross-checked against live session context (`~/.claude/rules/*.md` confirmed loaded as "user's private global instructions").
+
+### Native hooks mechanism
+
+| Mechanism | Detail |
+|---|---|
+| Config file | `settings.json` - project: `<project>/.claude/settings.json`; user (global): `~/.claude/settings.json`. **Shared file** - also holds `env`, `permissions`, `includeCoAuthoredBy`, etc. (unlike Cursor's dedicated `hooks.json`) |
+| Config format | `{"hooks": {"<EventName>": [{"matcher": "...?", "hooks": [{"type": "command", "command": "node /path/to/script.js", "timeout": 30?}]}]}}` - note the **extra nesting level** vs Cursor: each event maps to an array of `{matcher, hooks}` objects, each of which contains a `hooks` array of command entries |
+| `type` field | `"command"` required (discriminated union - other types: `prompt`, `agent`, `http`, `mcpTool`) |
+| `command` field | Shell string, same as Cursor - `"node /path/to/script.js"` works identically |
+| Script I/O contract | Same as Cursor: JSON on stdin, JSON on stdout, exit code 0/other. Script is a real OS process with full file I/O. |
+| Working directory | Resolved from `input.cwd` in the hook input JSON (not an env var like Cursor's `CURSOR_PROJECT_DIR`) |
+
+### Hook events (Claude Code)
+
+Full event list extracted from the binary:
+
+```
+PreToolUse, PostToolUse, PostToolUseFailure, PostToolBatch,
+Notification, UserPromptSubmit, UserPromptExpansion,
+SessionStart, SessionEnd, Stop, StopFailure,
+SubagentStart, SubagentStop, PreCompact, PostCompact,
+PermissionRequest, PermissionDenied, Setup,
+TeammateIdle, TaskCreated, TaskCompleted,
+Elicitation, ElicitationResult,
+ConfigChange, WorktreeCreate, WorktreeRemove,
+InstructionsLoaded, CwdChanged, FileChanged, MessageDisplay
+```
+
+**Event name casing**: Claude Code uses PascalCase (`SessionStart`, `SessionEnd`); Cursor uses lowerCamelCase (`sessionStart`, `sessionEnd`).
+
+### Hook input schema
+
+Base input (all events include these fields):
+
+```json
+{
+  "session_id": "abc123",
+  "transcript_path": "/path/to/transcript.jsonl",
+  "cwd": "/path/to/project",
+  "permission_mode": "default",
+  "agent_id": "optional, present only in subagent calls",
+  "agent_type": "optional, e.g. 'general-purpose'",
+  "hook_event_name": "SessionStart"
+}
+```
+
+Event-specific fields:
+
+| Event | Extra input fields |
+|---|---|
+| `SessionStart` | `source` (`"startup"` \| `"resume"` \| `"clear"` \| `"compact"`), `model`, `session_title` |
+| `SessionEnd` | `reason` (string) - **no `duration_ms`** (unlike Cursor) |
+| `PreToolUse` | `tool_name`, `tool_input`, `tool_use_id` |
+| `PostToolUse` | `tool_name`, `tool_input`, `tool_response`, `tool_use_id`, `duration_ms` |
+
+### Hook output schema
+
+| Event | Output fields |
+|---|---|
+| `SessionStart` | `hookEventName: "SessionStart"`, `additionalContext` (string, optional), `sessionTitle` (optional), `reloadSkills` (boolean, optional), `watchPaths` (array, optional) |
+| `SessionEnd` | Fire-and-forget (output ignored, same as Cursor) |
+| `PreToolUse` | `hookEventName: "PreToolUse"`, `permissionDecision` (optional), `updatedInput` (optional), `additionalContext` (optional) |
+
+**Key field naming difference**: Claude Code uses `additionalContext` (camelCase); Cursor uses `additional_context` (snake_case).
+
+### Key differences from Cursor hooks
+
+| Dimension | Cursor | Claude Code |
+|---|---|---|
+| Event names | lowerCamelCase (`sessionStart`) | PascalCase (`SessionStart`) |
+| Config file | `hooks.json` (dedicated) | `settings.json` (shared with env/permissions/etc.) |
+| Config structure | Flat: `{command: "..."}` per event | Nested: `{matcher: "...", hooks: [{type: "command", command: "..."}]}` |
+| Project root in input | `CURSOR_PROJECT_DIR` env var + `workspace_roots[0]` | `cwd` field in input JSON |
+| Context injection output | `additional_context` (snake_case) | `additionalContext` (camelCase) + `hookEventName` field required |
+| SessionEnd input | Has `duration_ms` | No `duration_ms` |
+| Config merge complexity | Low (dedicated file, only hooks) | Higher (shared file, must preserve non-hooks fields) |
 
 ## Architecture
 
@@ -55,11 +139,15 @@ Claude Code does have its own native hook mechanism (`.claude/settings.json`), w
         │ tools/sync/ (sync.js)
         ▼
 ┌────────────────────────────────────┬──────────────────────────────────────┐
-│ Cursor (real automation)            │ Claude Code (documentation only)     │
-│ ~/.cursor/hooks.json (user)         │ ~/.claude/rules/myrules-hook-*.md    │
-│ ~/.cursor/hooks/myrules-*.js        │ (user)                               │
-│ <project>/.cursor/hooks.json        │ <project>/.claude/rules/             │
-│ <project>/.cursor/hooks/myrules-*.js│   myrules-hook-*.md (project)        │
+│ Cursor (real automation)            │ Claude Code                          │
+│ ~/.cursor/hooks.json (user)         │ v1: ~/.claude/rules/myrules-hook-*.md│
+│ ~/.cursor/hooks/myrules-*.js        │      (prose only, no auto-exec)      │
+│ <project>/.cursor/hooks.json        │ v1: <project>/.claude/rules/         │
+│ <project>/.cursor/hooks/myrules-*.js│      myrules-hook-*.md (project)     │
+│                                     │ Future: ~/.claude/settings.json      │
+│                                     │   hooks key (native auto-exec)       │
+│                                     │ Future: <project>/.claude/           │
+│                                     │   settings.json hooks key            │
 └────────────────────────────────────┴──────────────────────────────────────┘
 ```
 
@@ -346,6 +434,76 @@ No automated test can confirm Cursor itself calls a deployed hook at the right t
 3. The first-sync fallback filter (matching `myrules-` in a command string, used only when no prior state exists yet) could theoretically remove a coincidentally-named foreign entry; considered acceptable given how narrow the window is (once state exists, exact-match removal takes over).
 4. No Cursor-side hook can currently be verified by automated tests — see Manual Verification, above.
 
+## Future: Claude Native Hooks
+
+**Status:** Planned, not yet implemented. This section documents what needs to change when MyRules wires hooks into Claude Code's native `settings.json` mechanism.
+
+### What changes
+
+1. **New deployer**: `hooks-deploy-claude.js` gains a second mode that writes to `settings.json` (in addition to generating the prose `.md` file, which remains as a fallback for environments where native hooks are unavailable or disabled).
+
+2. **`settings.json` merge algorithm**: Similar to the `hooks.json` merge for Cursor, but more complex because `settings.json` is a shared file holding `env`, `permissions`, `includeCoAuthoredBy`, and other non-hooks fields. The merge must:
+   - Load existing `settings.json` and preserve all non-`hooks` keys untouched.
+   - Within the `hooks` key, apply the same remove-then-add strategy as `hooks.json`: remove entries whose `command` matches previously-deployed MyRules commands, then append fresh entries for current hooks.
+   - Never delete the `settings.json` file itself, even if it ends up with an empty `hooks` object.
+
+3. **Config structure adaptation**: Claude Code's hooks config has an extra nesting level vs Cursor:
+   ```json
+   {
+     "hooks": {
+       "SessionStart": [
+         {
+           "matcher": null,
+           "hooks": [
+             { "type": "command", "command": "node .claude/hooks/myrules-session-start-context.js" }
+           ]
+         }
+       ]
+     }
+   }
+   ```
+   Each event maps to an array of `{matcher, hooks}` objects; `matcher` is omitted or null for non-tool events like `SessionStart`.
+
+4. **Event name mapping**: `meta.event` in hook source files uses Cursor's lowerCamelCase (`sessionStart`). The deployer must map to Claude Code's PascalCase (`SessionStart`) when writing to `settings.json`. Mapping table:
+   - `sessionStart` -> `SessionStart`
+   - `sessionEnd` -> `SessionEnd`
+   - Future hooks using tool-based events (`preToolUse`, `postToolUse`) would map to `PreToolUse`, `PostToolUse`, etc.
+
+5. **Hook script I/O adaptation**: The deployed Node scripts must handle both platforms' I/O contracts. Two approaches:
+   - **Option A (preferred)**: Scripts detect the platform from the input JSON. If `input.cwd` is present and `CURSOR_PROJECT_DIR` is absent, it's Claude Code; adapt output field names accordingly (`additionalContext` vs `additional_context`).
+   - **Option B**: Deployer generates a thin platform-specific wrapper that calls the shared `handle()` function and translates the output.
+
+6. **Script deploy paths**:
+   - Project: `<project>/.claude/hooks/myrules-<name>.js`
+   - User: `~/.claude/hooks/myrules-<name>.js`
+   - Add `.claude/hooks/myrules-*` to the gitignore marker block.
+
+7. **State tracking**: `deployedHooks` in sync state gains a `claudeCommand` field alongside the existing `command` (Cursor), so the merge algorithm can remove the correct entries from each file independently.
+
+### Seed hook adaptations
+
+**`session-start-context.js`**:
+- Input: fall back to `input.cwd` when `CURSOR_PROJECT_DIR` / `workspace_roots` are absent.
+- Output: return `{ hookEventName: "SessionStart", additionalContext: content }` when running under Claude Code; `{ additional_context: content }` under Cursor.
+
+**`session-log.js`**:
+- Input: `input.duration_ms` is absent in Claude Code's `SessionEnd`; omit it from the log line (or log `0`).
+- Output: `{}` is fine for both platforms (fire-and-forget).
+
+### Testing additions
+
+- `settings.json` merge test: fixture with pre-existing `env` and `permissions` keys -> assert only the `hooks` key is modified; all other keys preserved.
+- Event name mapping test: `sessionStart` -> `SessionStart` in generated `settings.json`.
+- I/O adaptation test: call `handle()` with a Claude Code-shaped input (`cwd` instead of `workspace_roots`) -> assert output uses `additionalContext` (camelCase).
+- End-to-end: sync -> assert `.claude/settings.json` has hooks entry, `.claude/hooks/myrules-*.js` exists, and `~/.claude/settings.json` has user-level hooks entry.
+
+### What does NOT change
+
+- Hook source files (`hooks/user/*.js`, `hooks/project/*.js`) stay as-is; platform adaptation happens at deploy time or inside `handle()`.
+- The prose `.md` file continues to be generated (as documentation and fallback).
+- Cursor-side deployment is completely unaffected.
+- Drift detection, stale cleanup, and state management reuse the same `drift.js` helper and state file structure.
+
 ## Decision Log
 
 | Decision | Choice | Rationale |
@@ -358,7 +516,7 @@ No automated test can confirm Cursor itself calls a deployed hook at the right t
 | Claude-side naming | `myrules-hook-<name>.md` (new `hook-` infix) | Keeps hook-derived files distinguishable from regular `myrules-<topic>.md` rule files sharing the same directory |
 | `hooks.json` gitignore | File itself not ignored; only `.cursor/hooks/myrules-*.js` scripts are | `hooks.json` may hold the user's own non-MyRules entries; blanket-ignoring it would silently stop tracking those |
 | Stale hook cleanup | Runs automatically on every `sync`, no opt-in flag | Only ever touches MyRules's own previously-tracked artifacts (unlike legacy-rule prune, which handles foreign files and needs explicit confirmation); a stale hook actively executes, unlike a stale skill clone or unused rule file, so leaving it behind is a worse default than for `skills.js` |
-| Claude automation | None — prose-only rule document, no `.claude/settings.json` management | Explicit user decision. Claude does have a native hooks mechanism, but MyRules deliberately doesn't touch it in v1, keeping the Claude side pure documentation like the rest of MyRules' rules |
+| Claude automation (v1) | None - prose-only rule document, no `settings.json` hooks management | Conservative v1 decision. Claude Code v2.1.179 confirmed to have full native hooks via `settings.json` (see [Platform Verification - Claude Code](#platform-verification---claude-code)). Future revision will wire into it - see [Future: Claude Native Hooks](#future-claude-native-hooks) |
 | v1 seed hooks | `session-start-context` (project) + `session-log` (user) | Directly matches the two concrete use cases identified during brainstorming; both are pure read/write, no gating, exercising both scope levels |
 | Hook event whitelist | None — any non-empty string accepted for `meta.event` | Cursor's hook event list may grow; hardcoding a whitelist would require a MyRules update to use a new Cursor event for no real safety benefit |
 

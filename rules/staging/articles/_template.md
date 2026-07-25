@@ -3,7 +3,7 @@
 - **Source**: <URL or reference>
 - **Date**: YYYY-MM-DD
 - **Status**: raw
-- **Target files**: prohibitions | ai-behavior | testing | output-standards | TBD
+- **Target files**: behavior | communication | coding-standards | planning | review | testing | TBD
 
 ## Core ideas (your words)
 
