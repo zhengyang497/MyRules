@@ -151,3 +151,43 @@ test('deployRules cursor and claude outputs are byte-identical to pre-opencode b
     '# Preferences\n\n- be concise'
   );
 });
+
+test('deployRules writes OpenCode project and user rule files', () => {
+  const cache = makeCache();
+  const project = makeProject();
+  const claudeUserDir = fakeClaudeUserDir(project);
+  const opencodeUserDir = fakeOpencodeUserDir(project);
+  const result = deploy.deployRules(cache, project, {
+    force: false,
+    priorHashes: {},
+    claudeUserDir,
+    opencodeUserDir,
+  });
+
+  const opencodeProject = path.join(project, '.opencode', 'rules', 'myrules-testing.md');
+  const opencodeUser = path.join(opencodeUserDir, 'myrules-user-preferences.md');
+
+  assert.ok(fs.existsSync(opencodeProject), 'missing opencode project rule');
+  assert.ok(fs.existsSync(opencodeUser), 'missing opencode user rule');
+  assert.strictEqual(
+    fs.readFileSync(opencodeProject, 'utf8'),
+    fs.readFileSync(path.join(cache, 'rules', 'project', 'testing.md'), 'utf8')
+  );
+  assert.strictEqual(result.drifted.length, 0);
+  assert.ok(Object.keys(result.hashes).some((k) => k.startsWith('.opencode/rules/')));
+});
+
+test('deployRules skips a hand-edited OpenCode rule file and reports it as drifted', () => {
+  const cache = makeCache();
+  const project = makeProject();
+  const claudeUserDir = fakeClaudeUserDir(project);
+  const opencodeUserDir = fakeOpencodeUserDir(project);
+  const first = deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir, opencodeUserDir });
+
+  const target = path.join(project, '.opencode', 'rules', 'myrules-testing.md');
+  fs.writeFileSync(target, 'hand-edited');
+
+  const second = deploy.deployRules(cache, project, { force: false, priorHashes: first.hashes, claudeUserDir, opencodeUserDir });
+  assert.ok(second.drifted.includes(target));
+  assert.strictEqual(fs.readFileSync(target, 'utf8'), 'hand-edited');
+});

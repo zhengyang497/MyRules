@@ -15,17 +15,21 @@ function isRuleStateKey(key) {
   return (
     key.startsWith('.cursor/rules/') ||
     key.startsWith('.claude/rules/') ||
-    key.startsWith('~claude-user~/')
+    key.startsWith('.opencode/rules/') ||
+    key.startsWith('~claude-user~/') ||
+    key.startsWith('~opencode-user~/')
   );
 }
 
-function staleRuleCleanup(priorHashes, newHashes, projectRoot, claudeUserDir) {
+function staleRuleCleanup(priorHashes, newHashes, projectRoot, claudeUserDir, opencodeUserDir) {
   const removed = [];
   for (const key of Object.keys(priorHashes || {})) {
     if (!isRuleStateKey(key) || key in newHashes) continue;
     const filePath = key.startsWith('~claude-user~/')
       ? path.join(claudeUserDir, key.slice('~claude-user~/'.length))
-      : path.join(projectRoot, key);
+      : key.startsWith('~opencode-user~/')
+        ? path.join(opencodeUserDir, key.slice('~opencode-user~/'.length))
+        : path.join(projectRoot, key);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
       removed.push(filePath);
@@ -41,12 +45,16 @@ function deployRules(cacheDir, projectRoot, opts = {}) {
   const force = opts.force || false;
   const priorHashes = opts.priorHashes || {};
   const claudeUserDir = opts.claudeUserDir || paths.getClaudeUserRulesDir();
+  const opencodeUserDir = opts.opencodeUserDir || paths.getOpencodeUserRulesDir();
   const cursorDir = paths.getCursorRulesDir(projectRoot);
   const claudeProjDir = paths.getClaudeProjectRulesDir(projectRoot);
+  const opencodeProjDir = paths.getOpencodeProjectRulesDir(projectRoot);
 
   fs.mkdirSync(cursorDir, { recursive: true });
   fs.mkdirSync(claudeProjDir, { recursive: true });
   fs.mkdirSync(claudeUserDir, { recursive: true });
+  fs.mkdirSync(opencodeProjDir, { recursive: true });
+  fs.mkdirSync(opencodeUserDir, { recursive: true });
 
   const tracker = drift.createTracker({ force, priorHashes });
 
@@ -71,16 +79,26 @@ function deployRules(cacheDir, projectRoot, opts = {}) {
         const claudeTarget = path.join(claudeUserDir, claudeName);
         const claudeStateKey = `~claude-user~/${claudeName}`;
         tracker.writeTracked(claudeTarget, transform.transformForClaude(body), claudeStateKey);
+
+        const opencodeName = `${userPrefix}${topic}.md`;
+        const opencodeTarget = path.join(opencodeUserDir, opencodeName);
+        const opencodeStateKey = `~opencode-user~/${opencodeName}`;
+        tracker.writeTracked(opencodeTarget, transform.transformForOpencode(body), opencodeStateKey);
       } else {
         const claudeName = `${prefix}${topic}.md`;
         const claudeTarget = path.join(claudeProjDir, claudeName);
         const claudeStateKey = path.posix.join('.claude/rules', claudeName);
         tracker.writeTracked(claudeTarget, transform.transformForClaude(body), claudeStateKey);
+
+        const opencodeName = `${prefix}${topic}.md`;
+        const opencodeTarget = path.join(opencodeProjDir, opencodeName);
+        const opencodeStateKey = path.posix.join('.opencode/rules', opencodeName);
+        tracker.writeTracked(opencodeTarget, transform.transformForOpencode(body), opencodeStateKey);
       }
     }
   }
 
-  const staleRemoved = staleRuleCleanup(priorHashes, tracker.hashes, projectRoot, claudeUserDir);
+  const staleRemoved = staleRuleCleanup(priorHashes, tracker.hashes, projectRoot, claudeUserDir, opencodeUserDir);
 
   return { hashes: tracker.hashes, drifted: tracker.drifted, staleRemoved };
 }
