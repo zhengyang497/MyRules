@@ -52,7 +52,9 @@ test('end-to-end: init, sync, protect, dry-run prune, prune, export', () => {
     cacheDir: cache,
     skipPull: true,
     skipSkills: true,
+    skipUserConfig: true,
     claudeUserDir: path.join(project, '.fake-claude-home', 'rules'),
+    opencodeUserDir: path.join(project, '.fake-opencode-home', 'rules'),
     homeDir: path.join(project, '.fake-home'),
   };
 
@@ -67,6 +69,12 @@ test('end-to-end: init, sync, protect, dry-run prune, prune, export', () => {
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-planner.md')));
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-implementer.md')));
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-reviewer.md')));
+
+  // OpenCode: rule files + opencode.json instructions + agent files
+  assert.ok(fs.existsSync(path.join(project, '.opencode', 'rules', 'myrules-testing.md')));
+  const ocConfig = JSON.parse(fs.readFileSync(path.join(project, 'opencode.json'), 'utf8'));
+  assert.ok(ocConfig.instructions.includes('.opencode/rules/myrules-*.md'));
+  assert.ok(fs.existsSync(path.join(project, '.opencode', 'agents', 'myrules-implementer.md')));
   assert.strictEqual(fs.readFileSync(path.join(project, 'CLAUDE.md'), 'utf8'), '# Project context — do not touch');
   assert.strictEqual(fs.readFileSync(path.join(project, 'AGENTS.md'), 'utf8'), '# Agent notes — do not touch');
 
@@ -99,7 +107,7 @@ test('end-to-end: init, sync, protect, dry-run prune, prune, export', () => {
 
   const editedFile = path.join(project, '.cursor', 'rules', 'myrules-testing.mdc');
   fs.writeFileSync(editedFile, fs.readFileSync(editedFile, 'utf8').replace('write tests', 'write ALL the tests'));
-  const report = exportLib.exportProject(cache, project, { claudeUserDir: opts.claudeUserDir });
+  const report = exportLib.exportProject(cache, project, { claudeUserDir: opts.claudeUserDir, opencodeUserDir: opts.opencodeUserDir });
   assert.ok(report.toUpdate.some((u) => u.deployedFile === editedFile));
 
   fs.rmSync(path.join(cache, 'hooks', 'project', 'session-start-context.js'));
