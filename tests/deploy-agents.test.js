@@ -97,3 +97,38 @@ test('deployAgents removes stale agent files from prior deploys', () => {
   deployAgents.deployAgents(cache, project, { force: false, priorAgentHashes: {} });
   assert.strictEqual(fs.existsSync(staleFile), false);
 });
+
+test('deployAgents cursor and claude outputs are byte-identical to pre-opencode baseline', () => {
+  // Self-contained cache: do NOT use seedCacheContent - the snapshot must be
+  // deterministic and not depend on the real repo's rules/ directory.
+  const cache = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-snap-agents-'));
+  fs.mkdirSync(path.join(cache, 'rules', 'user'), { recursive: true });
+  fs.mkdirSync(path.join(cache, 'rules', 'project'), { recursive: true });
+  fs.writeFileSync(path.join(cache, 'rules', 'user', 'preferences.md'), '# Preferences\n\n- be concise');
+  fs.writeFileSync(path.join(cache, 'rules', 'project', 'planning.md'), '---\nagents: [planner]\n---\n\n# Planning\n\n- clarify first');
+  fs.writeFileSync(path.join(cache, 'manifest.js'),
+    'module.exports = ' + JSON.stringify({
+      managedPrefix: 'myrules-',
+      agents: {
+        roles: { planner: { description: 'Plans work.', readonly: true, model: 'inherit' } },
+        prefix: 'myrules-',
+        cursorDir: '.cursor/agents',
+        claudeDir: '.claude/agents',
+      },
+    }) + ';\n'
+  );
+
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-snap-agents-proj-'));
+  deployAgents.deployAgents(cache, project, { force: false, priorAgentHashes: {} });
+
+  // Cursor planner agent
+  assert.strictEqual(
+    fs.readFileSync(path.join(project, '.cursor', 'agents', 'myrules-planner.md'), 'utf8'),
+    '---\nname: "myrules-planner"\ndescription: "Plans work."\nmodel: "inherit"\nreadonly: true\n---\n\n## user: preferences\n\n# Preferences\n\n- be concise\n\n## project: planning\n\n# Planning\n\n- clarify first'
+  );
+  // Claude planner agent
+  assert.strictEqual(
+    fs.readFileSync(path.join(project, '.claude', 'agents', 'myrules-planner.md'), 'utf8'),
+    '---\nname: "myrules-planner"\ndescription: "Plans work."\nmodel: "inherit"\npermissionMode: "plan"\n---\n\n## user: preferences\n\n# Preferences\n\n- be concise\n\n## project: planning\n\n# Planning\n\n- clarify first'
+  );
+});
