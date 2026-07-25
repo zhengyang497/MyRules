@@ -19,13 +19,17 @@ function fakeClaudeUserDir(project) {
   return path.join(project, '.fake-claude-home', 'rules');
 }
 
+function fakeOpencodeUserDir(project) {
+  return path.join(project, '.fake-opencode-home', 'rules');
+}
+
 test('exportProject reports no diffs immediately after a clean deploy', () => {
   const cache = makeCache();
   const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-export-project-'));
   const claudeUserDir = fakeClaudeUserDir(project);
-  deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir });
+  deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir, opencodeUserDir: fakeOpencodeUserDir(project) });
 
-  const report = exportLib.exportProject(cache, project, { claudeUserDir });
+  const report = exportLib.exportProject(cache, project, { claudeUserDir, opencodeUserDir: fakeOpencodeUserDir(project) });
   assert.strictEqual(report.toUpdate.length, 0);
 });
 
@@ -33,13 +37,13 @@ test('exportProject detects a hand-edited project rule and maps it to rules/proj
   const cache = makeCache();
   const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-export-project-'));
   const claudeUserDir = fakeClaudeUserDir(project);
-  deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir });
+  deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir, opencodeUserDir: fakeOpencodeUserDir(project) });
 
   const deployedFile = path.join(project, '.cursor', 'rules', 'myrules-testing.mdc');
   const original = fs.readFileSync(deployedFile, 'utf8');
   fs.writeFileSync(deployedFile, original.replace('write tests', 'write MORE tests'));
 
-  const report = exportLib.exportProject(cache, project, { claudeUserDir });
+  const report = exportLib.exportProject(cache, project, { claudeUserDir, opencodeUserDir: fakeOpencodeUserDir(project) });
   const match = report.toUpdate.find((u) => u.deployedFile === deployedFile);
   assert.ok(match, 'expected the edited file to be reported');
   assert.strictEqual(match.sourceFile, path.join(cache, 'rules', 'project', 'testing.md'));
@@ -50,13 +54,13 @@ test('exportProject detects a hand-edited user rule and maps it to rules/user/<t
   const cache = makeCache();
   const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-export-project-'));
   const claudeUserDir = fakeClaudeUserDir(project);
-  deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir });
+  deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir, opencodeUserDir: fakeOpencodeUserDir(project) });
 
   const deployedFile = path.join(project, '.cursor', 'rules', 'myrules-user-preferences.mdc');
   const original = fs.readFileSync(deployedFile, 'utf8');
   fs.writeFileSync(deployedFile, original.replace('be concise', 'be VERY concise'));
 
-  const report = exportLib.exportProject(cache, project, { claudeUserDir });
+  const report = exportLib.exportProject(cache, project, { claudeUserDir, opencodeUserDir: fakeOpencodeUserDir(project) });
   const match = report.toUpdate.find((u) => u.deployedFile === deployedFile);
   assert.ok(match);
   assert.strictEqual(match.sourceFile, path.join(cache, 'rules', 'user', 'preferences.md'));
@@ -70,8 +74,8 @@ test('exportProject compares project sources without frontmatter against deploye
   );
   const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-export-frontmatter-'));
   const claudeUserDir = fakeClaudeUserDir(project);
-  deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir });
+  deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir, opencodeUserDir: fakeOpencodeUserDir(project) });
 
-  const report = exportLib.exportProject(cache, project, { claudeUserDir });
+  const report = exportLib.exportProject(cache, project, { claudeUserDir, opencodeUserDir: fakeOpencodeUserDir(project) });
   assert.strictEqual(report.toUpdate.length, 0);
 });
