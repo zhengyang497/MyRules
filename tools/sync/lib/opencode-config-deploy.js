@@ -58,6 +58,7 @@ function deployConfigFile(configFile, currentEntries, priorEntries) {
 
 function deployProjectConfig(cacheDir, projectRoot, opts = {}) {
   const manifest = opts.manifest || loadManifest.loadManifest(cacheDir);
+  if (!manifest.opencode) return { instructions: [], wrote: false };
   const configFile = opts.configFile || paths.getOpencodeProjectConfigFile(projectRoot);
   const current = [manifest.opencode.projectInstructionsGlob];
   return deployConfigFile(configFile, current, opts.priorEntries || []);
@@ -65,6 +66,7 @@ function deployProjectConfig(cacheDir, projectRoot, opts = {}) {
 
 function deployUserConfig(cacheDir, opts = {}) {
   const manifest = opts.manifest || loadManifest.loadManifest(cacheDir);
+  if (!manifest.opencode) return { instructions: [], wrote: false };
   const homeDir = opts.homeDir || require('node:os').homedir();
   const configFile = opts.configFile || paths.getOpencodeUserConfigFile(homeDir);
   const current = [manifest.opencode.userInstructionsGlob];

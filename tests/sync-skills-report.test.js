@@ -55,7 +55,9 @@ test('sync.run warns when skill sync fails but still deploys rules', () => {
       force: false,
       skipPull: true,
       skipSkills: false,
+      skipUserConfig: true,
       claudeUserDir: path.join(project, '.fake-claude-home', 'rules'),
+      opencodeUserDir: path.join(project, '.fake-opencode-home', 'rules'),
       homeDir: path.join(project, '.fake-home'),
     });
   } finally {
@@ -79,7 +81,9 @@ test('sync.run clones cache when cache dir is missing', () => {
     cacheDir: cache,
     skipPull: true,
     skipSkills: true,
+    skipUserConfig: true,
     claudeUserDir: path.join(project, '.fake-claude-home', 'rules'),
+    opencodeUserDir: path.join(project, '.fake-opencode-home', 'rules'),
     homeDir: path.join(project, '.fake-home'),
   });
   assert.ok(fs.existsSync(cache));
