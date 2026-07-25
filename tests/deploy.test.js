@@ -122,3 +122,32 @@ test('deployRules removes stale rule artifacts after ai-behavior migration to us
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-user-ai-behavior.mdc')));
   assert.ok(fs.existsSync(path.join(claudeUserDir, 'myrules-user-ai-behavior.md')));
 });
+
+test('deployRules cursor and claude outputs are byte-identical to pre-opencode baseline', () => {
+  const cache = makeCache();
+  const project = makeProject();
+  const claudeUserDir = fakeClaudeUserDir(project);
+  const opencodeUserDir = fakeOpencodeUserDir(project);
+  deploy.deployRules(cache, project, { force: false, priorHashes: {}, claudeUserDir, opencodeUserDir });
+
+  // Cursor project rule
+  assert.strictEqual(
+    fs.readFileSync(path.join(project, '.cursor', 'rules', 'myrules-testing.mdc'), 'utf8'),
+    '---\ndescription: "MyRules: testing"\nalwaysApply: true\n---\n\n# Testing\n\n- write tests'
+  );
+  // Claude project rule
+  assert.strictEqual(
+    fs.readFileSync(path.join(project, '.claude', 'rules', 'myrules-testing.md'), 'utf8'),
+    '# Testing\n\n- write tests'
+  );
+  // Cursor user rule
+  assert.strictEqual(
+    fs.readFileSync(path.join(project, '.cursor', 'rules', 'myrules-user-preferences.mdc'), 'utf8'),
+    '---\ndescription: "MyRules: preferences"\nalwaysApply: true\n---\n\n# Preferences\n\n- be concise'
+  );
+  // Claude user rule
+  assert.strictEqual(
+    fs.readFileSync(path.join(claudeUserDir, 'myrules-user-preferences.md'), 'utf8'),
+    '# Preferences\n\n- be concise'
+  );
+});
