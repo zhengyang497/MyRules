@@ -4,3 +4,4 @@
 .myrules-sync-state.json
 node_modules/
 .worktrees/
+.skill-clones/
