@@ -84,6 +84,14 @@ function deployRules(cacheDir, projectRoot, opts = {}) {
         const opencodeTarget = path.join(opencodeUserDir, opencodeName);
         const opencodeStateKey = `~opencode-user~/${opencodeName}`;
         tracker.writeTracked(opencodeTarget, transform.transformForOpencode(body), opencodeStateKey);
+
+        // Also deploy user rules to project .opencode/rules/ so the project-level
+        // instructions glob (e.g. ".opencode/rules/myrules-*.md") picks them up.
+        // The global opencode.json instructions are overridden by project config.
+        const opencodeProjName = `${userPrefix}${topic}.md`;
+        const opencodeProjTarget = path.join(opencodeProjDir, opencodeProjName);
+        const opencodeProjStateKey = path.posix.join('.opencode/rules', opencodeProjName);
+        tracker.writeTracked(opencodeProjTarget, transform.transformForOpencode(body), opencodeProjStateKey);
       } else {
         const claudeName = `${prefix}${topic}.md`;
         const claudeTarget = path.join(claudeProjDir, claudeName);

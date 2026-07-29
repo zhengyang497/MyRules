@@ -166,9 +166,11 @@ test('deployRules writes OpenCode project and user rule files', () => {
 
   const opencodeProject = path.join(project, '.opencode', 'rules', 'myrules-testing.md');
   const opencodeUser = path.join(opencodeUserDir, 'myrules-user-preferences.md');
+  const opencodeProjUser = path.join(project, '.opencode', 'rules', 'myrules-user-preferences.md');
 
   assert.ok(fs.existsSync(opencodeProject), 'missing opencode project rule');
   assert.ok(fs.existsSync(opencodeUser), 'missing opencode user rule');
+  assert.ok(fs.existsSync(opencodeProjUser), 'missing opencode user rule in project .opencode/rules/');
   assert.strictEqual(
     fs.readFileSync(opencodeProject, 'utf8'),
     fs.readFileSync(path.join(cache, 'rules', 'project', 'testing.md'), 'utf8')
