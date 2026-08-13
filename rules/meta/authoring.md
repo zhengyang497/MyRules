@@ -32,6 +32,25 @@ irreversible outcomes (e.g. deleting unrecoverable data) - prefer **Sensors**
 (automatic checks) over guide-only hope, and note that you are intentionally
 breaking the "seen it first" bar.
 
+## Dual poles (do not patch one incident into a mandate)
+
+A real failure is necessary, not sufficient. Patching only the complaint you just heard **over-corrects**: the new line keeps that lesson and makes the opposite failure easier.
+
+Seen 2026-08-13 on `rules/user/communication.md`: three successive patches from three complaints (too slogan-like → never be short; catalog answers → every explainer must be four steps; coined labels → definition outranks brevity). Each lesson was real. Together they removed any length ceiling. Proposing "always answer short" after "too long" is the same failure in the other direction.
+
+Before adding, widening, or deleting a line:
+
+1. Re-read the **whole target file**, not only the paragraph you are editing.
+2. Name the **opposite** failure that file already records, or that you have already seen. If you cannot name it, you are not ready to patch — write both poles down first.
+3. The new sentence must still make that opposite failure **harder**, not easier. If one sentence cannot hold both poles, stop; do not append a one-way patch.
+4. Do not promote one incident into a file-wide mandate ("all explanations", "never compress", "always four sections"). Scope the constraint to the class of situation where it failed.
+5. Prefer **replacing a cluster of one-way patches** with one dual-pole paragraph over adding a fourth patch.
+
+Invalid: "never write short" or "always write short".
+Valid: a line that forbids slogans/jargon catalogs **and** forbids expanding a settled answer into a template essay.
+
+Deleting a line is the same test in reverse: do not drop "no slogans" because the last answer was too long.
+
 ## What belongs in deployable rules (`user/` / `project/`)
 
 `rules/user/` holds personal rules that apply to **all** roles (communication,
@@ -111,10 +130,14 @@ Keep each deployable `rules/user/*.md` and `rules/project/*.md` file **lean**
 When an agent makes a mistake while you work:
 
 1. Fix the immediate issue.
-2. **Engineer the fix into rules** so it is less likely to recur.
+2. **Do not** open the matching rule file and append a patch in the same turn.
+   Write both poles (this failure **and** the opposite one) first. Then engineer
+   a dual-pole line — or replace a one-way cluster — so the mistake is less
+   likely to recur **and** less likely to cause the opposite mistake.
 3. Capture source in `rules/staging/articles/` if helpful.
 4. Merge into `user/` or `project/` when polished - not every note belongs in
-   deployable rules.
+   deployable rules. Meta constraints (how to edit rules) go in this file, not
+   in `communication.md` / `behavior.md`.
 
 ## Staging workflow
 
@@ -141,6 +164,8 @@ means: edit cache -> push -> sync - not a manual memory-export drag each session
 ## Quick checklist before merge
 
 - [ ] Golden test passed for each new line
+- [ ] Dual-pole check: opposite failure named; new line still makes it harder
+- [ ] Constraint scoped to the incident class, not widened to "always / never / all"
 - [ ] Not a placeholder or duplicate of superpowers skills without a stricter personal bar
 - [ ] Deduplicated against existing `user/` / `project/` files
 - [ ] Expired lines from staging removed, not copied forward

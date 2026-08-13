@@ -8,6 +8,6 @@
 | `rules/staging/` | **不会** → 草稿、文章笔记 |
 | `rules/meta/`（本目录） | **不会** → 只在内容库 `~/.myrules/` 里用 |
 
-**主文件：** [`authoring.md`](authoring.md) — 编辑 `rules/user/` 或 `rules/project/` 前请先读。
+**主文件：** [`authoring.md`](authoring.md) — 编辑 `rules/user/` 或 `rules/project/` 前请先读。改已有条文时先过 **Dual poles**：重读整份目标文件，新句子必须两头都还在，禁止按刚听到的那一头单向拧。
 
 定稿流程：文章笔记 → `staging/` → 合并进 `user/` 或 `project/` → `push.js` → `sync.js`。
