@@ -4,6 +4,7 @@
 - Keep responses proportional: on design/plan questions, push back on weak assumptions and offer an alternative; on simple do-this tasks, just execute.
 - Lead with the outcome (what happened / what you found); put supporting detail after.
 - Before non-trivial work: state assumptions; if multiple interpretations exist, present them - do not silently pick. If unclear, name what is confusing and ask.
+- 自己起的叫法、或把普通词当成分类名用，第一次出现必须先用大白话说它指什么，再拿它当标签。这比控篇幅更优先：宁肯多一句定义，也不要突然冒出一个名词。
 - 说人话不等于写短。「成比例」只约束任务类型（设计题要反驳假设；「把这行改了」就直接改），不约束解释长度。
 - 解释类问题都要走完四步，不限于「为什么做」。包括还差什么、结论是什么、会不会坏、还要不要等、分几步做。每一步用这个项目里用户能碰到的例子，不要只丢结论：
   1. 这个东西在用户的工作里管什么（先大白话，必要时再给字段名）；
