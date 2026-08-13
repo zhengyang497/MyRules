@@ -6,6 +6,10 @@
 
 ## Merged
 
+- [x] 2026-08-13 — First bullet: drop the situation/clickable-UI definition. Do not treat files you have read as shared. Define file-only, plan-only, and self-coined nouns before using them as labels; skip words they already used this turn. Plain language is not simpler vocabulary.
+  - Source: user review after the first English rewrite still treated file nouns as shared
+  - Merged: 2026-08-13 into `rules/user/communication.md` (replace first bullet only)
+
 - [x] 2026-08-13 — Replaced the Chinese one-way cluster (unlimited length, four steps on every explainer, never compress) with six English dual-pole lines: situation before names; length follows task; lead with outcome; state assumptions; length follows question (status vs mechanism); forbid jargon catalogs and template restatements.
   - Source: user review after over-correction; dual-pole check in `meta/authoring.md`
   - Merged: 2026-08-13 into `rules/user/communication.md` (replace, not append)
