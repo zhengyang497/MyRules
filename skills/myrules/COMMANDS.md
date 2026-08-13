@@ -10,7 +10,8 @@ MyRules repo clone / shallow clone otherwise.
 | User intent | Command |
 |-------------|---------|
 | Import / install MyRules skill from GitHub (**bootstrap** step 1) | `node "<myrules-clone>/tools/sync/install-skill.js" --project "<workspace>"` |
-| Sync into this project (rules + agents + hooks + external skills) | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>"` — or `node "<myrules-clone>/tools/sync/sync.js" --project "<workspace>"` when `~/.myrules/` does not exist yet |
+| Sync into this project (rules + agents + hooks; existing skills kept, not re-fetched) | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>"` — or `node "<myrules-clone>/tools/sync/sync.js" --project "<workspace>"` when `~/.myrules/` does not exist yet |
+| Refresh external skills from GitHub (then keep local copies if fetch fails) | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --update-skills` |
 | Sync every registered project on this machine | `node "$HOME/.myrules/tools/sync/sync.js" --all` |
 | Take over an old project's rules | 1) dry-run: `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --dry-run --prune-legacy-rules`, review the listed files, then 2) `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --prune-legacy-rules` |
 | Force-overwrite locally-edited myrules-* rules or hook scripts | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --force` |

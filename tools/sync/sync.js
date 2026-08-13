@@ -16,12 +16,13 @@ const hooksState = require('./lib/hooks-state');
 const opencodeConfig = require('./lib/opencode-config-deploy');
 
 function parseArgs(argv) {
-  const args = { dryRun: false, prune: false, project: null, all: false, force: false };
+  const args = { dryRun: false, prune: false, project: null, all: false, force: false, updateSkills: false };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--dry-run') args.dryRun = true;
     else if (argv[i] === '--prune-legacy-rules') args.prune = true;
     else if (argv[i] === '--force') args.force = true;
     else if (argv[i] === '--all') args.all = true;
+    else if (argv[i] === '--update-skills') args.updateSkills = true;
     else if (argv[i] === '--project') args.project = argv[++i];
   }
   return args;
@@ -29,10 +30,18 @@ function parseArgs(argv) {
 
 function reportSkillResults(results) {
   const failed = results.filter((r) => !r.ok);
-  if (!failed.length) return;
-  console.warn(`Skill sync failed for ${failed.length} target(s):`);
-  for (const r of failed) {
-    console.warn(`  ${r.name} → ${r.target}: ${r.error}`);
+  const kept = results.filter((r) => r.ok && r.warning);
+  if (failed.length) {
+    console.warn(`Skill sync failed for ${failed.length} target(s):`);
+    for (const r of failed) {
+      console.warn(`  ${r.name} → ${r.target}: ${r.error}`);
+    }
+  }
+  if (kept.length) {
+    console.warn(`Skill fetch failed; kept existing files for ${kept.length} target(s):`);
+    for (const r of kept) {
+      console.warn(`  ${r.name} → ${r.target}: ${r.warning}`);
+    }
   }
 }
 
@@ -149,8 +158,12 @@ function run(opts) {
     const skillResults = skills.syncSkills(cacheDir, {
       cursorSkillsDir: paths.getCursorUserSkillsDir(homeDir),
       claudeSkillsDir: paths.getClaudeUserSkillsDir(homeDir),
+      update: Boolean(opts.updateSkills),
     });
     reportSkillResults(skillResults);
+    if (!opts.updateSkills && skillResults.some((r) => r.reused)) {
+      console.warn('Skill remotes not fetched (pass --update-skills to refresh).');
+    }
   }
   if (!opts.skipUserHooks) {
     const priorUserHooksState = hooksState.readUserHooksState(homeDir);

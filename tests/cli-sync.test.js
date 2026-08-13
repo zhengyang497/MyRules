@@ -50,6 +50,13 @@ function baseOpts(project, cache) {
   };
 }
 
+test('parseArgs enables --update-skills', () => {
+  const args = syncCli.parseArgs(['--project', 'D:\\wiki', '--update-skills']);
+  assert.strictEqual(args.updateSkills, true);
+  assert.strictEqual(args.project, 'D:\\wiki');
+  assert.strictEqual(syncCli.parseArgs(['--project', 'D:\\wiki']).updateSkills, false);
+});
+
 test('sync.run deploys rules and writes sync state with the cache commit', () => {
   const cache = makeCacheRepo();
   const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-sync-project-'));

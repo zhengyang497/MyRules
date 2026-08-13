@@ -67,9 +67,56 @@ test('syncSkills updates an already-cloned skill to the latest commit', () => {
   run(seed2, ['commit', '-m', 'v2']);
   run(seed2, ['push']);
 
-  skills.syncSkills(cache, { cursorSkillsDir, claudeSkillsDir });
+  skills.syncSkills(cache, { cursorSkillsDir, claudeSkillsDir, update: true });
   const content = fs.readFileSync(path.join(cursorSkillsDir, 'fixture-skill', 'SKILL.md'), 'utf8');
   assert.match(content, /v2/);
+});
+
+test('syncSkills does not fetch an existing clone unless update is true', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-skills-'));
+  const bare = makeFixtureSkillRepo(root);
+  const cache = makeCacheWithManifest(bare);
+  const cursorSkillsDir = path.join(root, 'cursor-skills');
+  const claudeSkillsDir = path.join(root, 'claude-skills');
+
+  skills.syncSkills(cache, { cursorSkillsDir, claudeSkillsDir });
+
+  const seed2 = path.join(root, 'skill-seed-2');
+  execFileSync('git', ['clone', '-b', 'main', bare, seed2], { stdio: 'ignore' });
+  fs.writeFileSync(path.join(seed2, 'SKILL.md'), '# Fixture Skill v2');
+  run(seed2, ['config', 'user.email', 'test@example.com']);
+  run(seed2, ['config', 'user.name', 'Test']);
+  run(seed2, ['add', '-A']);
+  run(seed2, ['commit', '-m', 'v2']);
+  run(seed2, ['push']);
+
+  const results = skills.syncSkills(cache, { cursorSkillsDir, claudeSkillsDir });
+  const content = fs.readFileSync(path.join(cursorSkillsDir, 'fixture-skill', 'SKILL.md'), 'utf8');
+  assert.match(content, /v1/);
+  assert.ok(results.every((r) => r.ok && r.reused));
+});
+
+test('syncSkills keeps an existing clone when fetch fails', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-skills-'));
+  const bare = makeFixtureSkillRepo(root);
+  const cache = makeCacheWithManifest(bare);
+  const cursorSkillsDir = path.join(root, 'cursor-skills');
+  const claudeSkillsDir = path.join(root, 'claude-skills');
+
+  skills.syncSkills(cache, { cursorSkillsDir, claudeSkillsDir });
+  const dest = path.join(cursorSkillsDir, 'fixture-skill');
+  execFileSync(
+    'git',
+    ['-C', dest, 'remote', 'set-url', 'origin', path.join(root, 'missing-origin.git')],
+    { stdio: 'ignore' },
+  );
+
+  const results = skills.syncSkills(cache, { cursorSkillsDir, claudeSkillsDir, update: true });
+  const cursor = results.find((r) => r.target === dest);
+  assert.ok(cursor.ok);
+  assert.ok(cursor.reused);
+  assert.ok(cursor.warning);
+  assert.match(fs.readFileSync(path.join(dest, 'SKILL.md'), 'utf8'), /v1/);
 });
 
 function makeFixtureMonorepoSkill(root) {
