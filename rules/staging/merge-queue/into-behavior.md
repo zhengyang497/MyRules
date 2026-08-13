@@ -2,7 +2,10 @@
 
 ## Candidates
 
-<!-- empty after 2026-07-25 merge -->
+- [ ] Before implementing, search the codebase to understand how similar work is done today; do not assume APIs or patterns exist without finding them in the project.
+  - Source: `articles/behavioral-guidelines-six-rules.md` (Think before coding)
+- [ ] Remove imports, variables, or functions that **your** changes made unused; do not delete pre-existing dead code unless asked.
+  - Source: `articles/behavioral-guidelines-six-rules.md` (Surgical changes); tightens existing surgical / scope line
 
 ## Merged
 
