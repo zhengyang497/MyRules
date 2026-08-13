@@ -6,7 +6,9 @@
 
 ## Merged
 
-- [x] 2026-08-13 — First bullet: drop the situation/clickable-UI definition. Do not treat files you have read as shared. Define file-only, plan-only, and self-coined nouns before using them as labels; skip words they already used this turn. Plain language is not simpler vocabulary.
+- [x] 2026-08-13 — Sentence-level prune (neither merge-to-3 nor restore-6). Cut: noun-type catalog (catch-all remains); empty "proportional to the task" header; laziness bullet split into existing lines (catalog → names; execute-as-essay → stance; settled-template → length). Kept as distinct jobs with full conditions: names+人话; stance (weak assumptions + alternative); lead with outcome; assumptions; length exemplars including the mechanism checklist.
+  - Source: user: six lines redundant → merge ate conditions → restore changed too little → stop polarizing, think per sentence
+  - Note: 2026-08-13 user dropped "Plain language is not simpler vocabulary." Do not treat files you have read as shared. Define file-only, plan-only, and self-coined nouns before using them as labels; skip words they already used this turn. Plain language is not simpler vocabulary.
   - Source: user review after the first English rewrite still treated file nouns as shared
   - Merged: 2026-08-13 into `rules/user/communication.md` (replace first bullet only)
 
