@@ -6,6 +6,10 @@
 
 ## Merged
 
+- [x] 2026-08-13 — Replaced the Chinese one-way cluster (unlimited length, four steps on every explainer, never compress) with six English dual-pole lines: situation before names; length follows task; lead with outcome; state assumptions; length follows question (status vs mechanism); forbid jargon catalogs and template restatements.
+  - Source: user review after over-correction; dual-pole check in `meta/authoring.md`
+  - Merged: 2026-08-13 into `rules/user/communication.md` (replace, not append)
+
 - [x] On design/plan questions, push back on weak assumptions and offer an alternative; on simple do-this tasks, just execute.
   - Source: user request (2026-07-09)
   - Merged: 2026-07-10 into `rules/user/preferences.md`; 2026-07-25 consolidated into `communication.md`
