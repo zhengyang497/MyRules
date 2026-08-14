@@ -6,6 +6,10 @@
 
 ## Merged
 
+- [x] 2026-08-14 — Split the names mega-bullet and add a Grok register line. Grok was treating the stacked negatives (define terms + no catalog + no 这/那 + do not ban pronouns) as a per-sentence ritual, which made replies harder to follow than the default witty register. Dual poles: (1) status wrap-ups still name unseen objects before deixis, but pronouns are fine after naming; (2) no sarcasm/memes/cosmic filler unless asked, without stripping necessary detail to sound simple. Scope: names job stays; deixis job scoped to status/wrap-up; new tone line is register, not length.
+  - Source: user: Grok replies hard to understand; confirmed Chinese draft 2026-08-14
+  - Merged: 2026-08-14 into `rules/user/communication.md` (split first bullet; add language/register bullet)
+
 - [x] 2026-08-14 — Widen the names bullet to cover deixis (这/那/该/这一趟/那一行) after a real failure: status summaries pointed at unnamed plan/UI objects. Dual pole: name the object first, then a short label is fine; do not ban pronouns.
   - Source: user review of global-100.4 wrap-up (2026-08-14)
   - Merged: 2026-08-14 into `rules/user/communication.md` (extend first bullet)
