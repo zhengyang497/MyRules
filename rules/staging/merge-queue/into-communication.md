@@ -6,6 +6,10 @@
 
 ## Merged
 
+- [x] 2026-08-16 — Add Chinese-register dual pole to the language bullet after a real failure: coined 「淹了一层」, which is not Chinese. Dual poles: (1) when writing Chinese, do not calque English metaphors/syntax or invent phrases Chinese does not use; (2) flowing connected prose is not ornament — do not pad a short answer into literary filler, and do not replace concrete nouns with empty words. Scope: Chinese replies only; length bullet still governs how long.
+  - Source: user: 「淹了一层」是翻译腔；中文里没见过这样的表达；要写进第 3 条，流程优美的中文
+  - Merged: 2026-08-16 into `rules/user/communication.md` (extend language/register bullet)
+
 - [x] 2026-08-14 — Split the names mega-bullet and add a Grok register line. Grok was treating the stacked negatives (define terms + no catalog + no 这/那 + do not ban pronouns) as a per-sentence ritual, which made replies harder to follow than the default witty register. Dual poles: (1) status wrap-ups still name unseen objects before deixis, but pronouns are fine after naming; (2) no sarcasm/memes/cosmic filler unless asked, without stripping necessary detail to sound simple. Scope: names job stays; deixis job scoped to status/wrap-up; new tone line is register, not length.
   - Source: user: Grok replies hard to understand; confirmed Chinese draft 2026-08-14
   - Merged: 2026-08-14 into `rules/user/communication.md` (split first bullet; add language/register bullet)
