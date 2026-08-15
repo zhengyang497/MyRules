@@ -6,6 +6,10 @@
 
 ## Merged
 
+- [x] 2026-08-16 — Replace 「文句要连着往下讲」 with 「前后句要接得上」 after the user said the former was unclear. Dual poles unchanged: connected sentences, not literary padding.
+  - Source: user: 「文句要连着往下讲」这是啥意思？→ 改
+  - Merged: 2026-08-16 into `rules/user/communication.md`
+
 - [x] 2026-08-16 — Add Chinese-register dual pole to the language bullet after a real failure: coined 「淹了一层」, which is not Chinese. Dual poles: (1) when writing Chinese, do not calque English metaphors/syntax or invent phrases Chinese does not use; (2) flowing connected prose is not ornament — do not pad a short answer into literary filler, and do not replace concrete nouns with empty words. Scope: Chinese replies only; length bullet still governs how long.
   - Source: user: 「淹了一层」是翻译腔；中文里没见过这样的表达；要写进第 3 条，流程优美的中文
   - Merged: 2026-08-16 into `rules/user/communication.md` (extend language/register bullet)
