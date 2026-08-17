@@ -2,9 +2,13 @@
 
 ## Candidates
 
-<!-- empty after 2026-07-25 merge -->
+<!-- empty after 2026-08-17 merge -->
 
 ## Merged
+
+- [x] 2026-08-17 — Chinese naming: layout/function, not English-calque or invented metaphor; translate code names on first use. Real failure: called an ungrouped fact index 扁列表 / 扁平列表 (flat list) instead of 逐条清单; user rejected the abbreviation diagnosis. The 2026-08-16 calque line did not catch this because 扁平列表 looks like Chinese. Dual poles: (1) still translate a code name by what it does on first use, not leave the identifier as the only name, and not calque it word-for-word (把事实写进账本的函数, not 应用事实写入); (2) do not retranslate a word they already used this turn, do not invent 写门-style metaphors, do not dump a glossary. Scope: the register bullet, not the names/nickname clause (defining-then-labeling would have produced 扁平列表).
+  - Source: user review after global-95 pre-start wording (2026-08-17)
+  - Merged: 2026-08-17 into `rules/user/communication.md` (extend language/register bullet)
 
 - [x] 2026-08-16 — Replace 「文句要连着往下讲」 with 「前后句要接得上」 after the user said the former was unclear. Dual poles unchanged: connected sentences, not literary padding.
   - Source: user: 「文句要连着往下讲」这是啥意思？→ 改
@@ -13,6 +17,7 @@
 - [x] 2026-08-16 — Add Chinese-register dual pole to the language bullet after a real failure: coined 「淹了一层」, which is not Chinese. Dual poles: (1) when writing Chinese, do not calque English metaphors/syntax or invent phrases Chinese does not use; (2) flowing connected prose is not ornament — do not pad a short answer into literary filler, and do not replace concrete nouns with empty words. Scope: Chinese replies only; length bullet still governs how long.
   - Source: user: 「淹了一层」是翻译腔；中文里没见过这样的表达；要写进第 3 条，流程优美的中文
   - Merged: 2026-08-16 into `rules/user/communication.md` (extend language/register bullet)
+
 
 - [x] 2026-08-14 — Split the names mega-bullet and add a Grok register line. Grok was treating the stacked negatives (define terms + no catalog + no 这/那 + do not ban pronouns) as a per-sentence ritual, which made replies harder to follow than the default witty register. Dual poles: (1) status wrap-ups still name unseen objects before deixis, but pronouns are fine after naming; (2) no sarcasm/memes/cosmic filler unless asked, without stripping necessary detail to sound simple. Scope: names job stays; deixis job scoped to status/wrap-up; new tone line is register, not length.
   - Source: user: Grok replies hard to understand; confirmed Chinese draft 2026-08-14
