@@ -2,9 +2,13 @@
 
 ## Candidates
 
-<!-- empty after 2026-08-17 merge -->
+<!-- empty after 2026-08-18 merge -->
 
 ## Merged
+
+- [x] 2026-08-18 — Chinese register: judge the whole sentence, not whether each word is in the dictionary. Real failure: a summary opening used only real Chinese words but was not something a person would say; the 2026-08-16 line (do not invent phrases Chinese does not use) did not catch it. User rejected patching one syntactic pattern or quoting the bad sentence in the rule. Dual poles: (1) rewrite until the sentence can be spoken as ordinary Chinese; (2) still do not pad a short answer into literary prose, and still do not replace concrete nouns with empty words. Scope: the Chinese-register clause of the language bullet; naming examples unchanged.
+  - Source: user review of a global-102 background reply, then rejected a one-pattern rule draft (2026-08-18)
+  - Merged: 2026-08-18 into `rules/user/communication.md` (replace 不要造中文里没人这么说的话 with the whole-sentence check)
 
 - [x] 2026-08-17 — Chinese naming: layout/function, not English-calque or invented metaphor; translate code names on first use. Real failure: called an ungrouped fact index 扁列表 / 扁平列表 (flat list) instead of 逐条清单; user rejected the abbreviation diagnosis. The 2026-08-16 calque line did not catch this because 扁平列表 looks like Chinese. Dual poles: (1) still translate a code name by what it does on first use, not leave the identifier as the only name, and not calque it word-for-word (把事实写进账本的函数, not 应用事实写入); (2) do not retranslate a word they already used this turn, do not invent 写门-style metaphors, do not dump a glossary. Scope: the register bullet, not the names/nickname clause (defining-then-labeling would have produced 扁平列表).
   - Source: user review after global-95 pre-start wording (2026-08-17)
