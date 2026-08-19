@@ -64,3 +64,29 @@ test('buildBlock includes opencode rules and agents', () => {
   assert.match(block, /\.opencode\/rules\/myrules-\*/);
   assert.match(block, /\.opencode\/agents\/myrules-\*/);
 });
+
+test('ensureGitignore refreshes a stale block that is missing opencode patterns', () => {
+  const project = tmpProject();
+  const stale = [
+    gitignore.MARKER,
+    '.cursor/rules/myrules-*',
+    '.claude/rules/myrules-*',
+    '.cursor/agents/myrules-*',
+    '.claude/agents/myrules-*',
+    '.cursor/hooks/myrules-*',
+    '.myrules-backup/',
+    '.myrules-sync-state.json',
+    '',
+    '# keep me',
+    '',
+  ].join('\n');
+  fs.writeFileSync(path.join(project, '.gitignore'), stale);
+  const wrote = gitignore.ensureGitignore(project, manifest);
+  assert.strictEqual(wrote, true);
+  const content = fs.readFileSync(path.join(project, '.gitignore'), 'utf8');
+  assert.match(content, /\.opencode\/rules\/myrules-\*/);
+  assert.match(content, /\.opencode\/agents\/myrules-\*/);
+  assert.match(content, /# keep me/);
+  const occurrences = content.split('MyRules deploy artifacts').length - 1;
+  assert.strictEqual(occurrences, 1);
+});

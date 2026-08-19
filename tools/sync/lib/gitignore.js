@@ -23,14 +23,46 @@ function buildBlock(manifest) {
   ].join('\n');
 }
 
+function newlineOf(text) {
+  return text.includes('\r\n') ? '\r\n' : '\n';
+}
+
+function normalizeBlock(text) {
+  return text.replace(/\r\n/g, '\n').replace(/\n+$/, '');
+}
+
+/** Exclusive end index of the MyRules gitignore block starting at MARKER. */
+function blockEndIndex(existing, start, nl) {
+  let pos = start;
+  while (pos < existing.length) {
+    const nextNl = existing.indexOf(nl, pos);
+    const lineEnd = nextNl === -1 ? existing.length : nextNl;
+    const line = existing.slice(pos, lineEnd);
+    if (pos !== start && line.trim() === '') return pos;
+    if (nextNl === -1) return existing.length;
+    pos = nextNl + nl.length;
+  }
+  return existing.length;
+}
+
 function ensureGitignore(projectRoot, manifest) {
   const file = path.join(projectRoot, '.gitignore');
   const existing = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
-  if (existing.includes(MARKER)) return false;
-
   const block = buildBlock(manifest);
-  const separator = existing.length === 0 ? '' : existing.endsWith('\n') ? '\n' : '\n\n';
-  fs.writeFileSync(file, existing + separator + block + '\n');
+  const start = existing.indexOf(MARKER);
+
+  if (start === -1) {
+    const separator = existing.length === 0 ? '' : existing.endsWith('\n') ? '\n' : '\n\n';
+    fs.writeFileSync(file, existing + separator + block + '\n');
+    return true;
+  }
+
+  const nl = newlineOf(existing);
+  const end = blockEndIndex(existing, start, nl);
+  const current = existing.slice(start, end);
+  if (normalizeBlock(current) === block) return false;
+
+  fs.writeFileSync(file, existing.slice(0, start) + block + nl + existing.slice(end));
   return true;
 }
 
