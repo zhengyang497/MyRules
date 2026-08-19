@@ -51,6 +51,21 @@ Valid: a line that forbids slogans/jargon catalogs **and** forbids expanding a s
 
 Deleting a line is the same test in reverse: do not drop "no slogans" because the last answer was too long.
 
+## 规则正文怎么写（语体）
+
+可下发的规则写成中文。按中文组织句子，不要先写成英文再译。信、达、雅要同时成立，不是互斥的：意思要准，句子要顺，读起来像中文写成的说明。专业判断、术语、分点都可以留。
+
+整句检查，不查单词。词都认得，仍可能是翻译腔或说明书腔，例如把几层意思挤进一句、用括号当字段目录、用「和 X 一样……两端读同一份」这种英文提纲节奏。也不要为了通顺改成聊天口吻：不要用凑、搁、点头、别另起炉灶这类口头禅替换准确说法。
+
+结构可以分点；分点里的句子仍用通顺书面中文，不要把分点写成决议稿，也不要写成口语速记。不要用「句子宜短」当标准，那会收成碎句。
+
+规则正文是模型会跟着学的样本。语体含糊，回复也会含糊。活约束仍写在 `communication.md`；本文件管的是**改规则时**怎么落笔。
+
+2026-08-19 见过的双极：说明书长句不像中文；改成大白话又不专业。新句子必须让这两头都更难发生。
+
+反例：「和股票代码表一样，放项目下的 `.llm-wiki` 里一份 JSON（开不开、页路径、预算），桌面和命令行读同一份。」
+正例：「放在项目的 `.llm-wiki` 下，和股票代码表同类，不进 wiki 正文。设置里改完，桌面导入和命令行都读这一份。」
+
 ## What belongs in deployable rules (`user/` / `project/`)
 
 `rules/user/` holds personal rules that apply to **all** roles (communication,
@@ -170,3 +185,4 @@ means: edit cache -> push -> sync - not a manual memory-export drag each session
 - [ ] Deduplicated against existing `user/` / `project/` files
 - [ ] Expired lines from staging removed, not copied forward
 - [ ] File still lean; split topic if needed
+- [ ] 规则正文通过语体检查：信、达、雅；不是英文提纲，也不是口语速记
