@@ -2,7 +2,7 @@
 agents: [implementer, reviewer]
 ---
 
-# Testing
+# 测试
 
-- Run relevant tests after behavioral changes. Do not add trivial tests unless requested.
-- Do not equate "code runs" with "requirements met" - check acceptance criteria and realistic usage, not only compile/happy path.
+- 行为有变就跑相关测试。未经要求不要加琐碎测试。
+- 不要把「代码能跑」当成「需求满足」——查验收条件和实际用法，不只看编译是否通过、理想情况是否走得通。

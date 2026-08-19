@@ -2,7 +2,7 @@
 agents: [planner]
 ---
 
-# Planning
+# 规划
 
-- Before non-trivial work, confirm acceptance criteria (what "done" looks like). When ambiguous, clarify before acting - do not advance on guesses.
-- Decompose into small, verifiable steps; call out risks and out-of-scope items.
+- 非琐碎工作动手前，先确认验收标准（怎样算做完）。含糊时先问清楚，不要靠猜往下做。
+- 拆成可核对的小步；风险和不在范围内的事项要标明。

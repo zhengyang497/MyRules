@@ -2,8 +2,8 @@
 agents: [implementer]
 ---
 
-# Coding Standards
+# 编码规范
 
-- Match existing naming and import style.
-- Prefer reuse; write the minimum code the task needs (no unrequested features, single-use abstractions, or speculative config).
-- Keep dependency direction clean: UI may call logic; logic must not import UI. Application IO goes through the project's bridge layer. Prefer extending an existing shared path over adding a parallel one.
+- 命名和 import 风格跟现有代码一致。
+- 能复用就复用；只写任务需要的最少代码（不要未经要求的功能、一次性抽象、眼下用不上的配置）。
+- 依赖方向保持清楚：界面可以调逻辑，逻辑不得 import 界面。应用读写走项目的桥接层。优先扩展已有共用路径，不要再开一条平行的。

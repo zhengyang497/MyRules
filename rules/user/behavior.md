@@ -1,8 +1,8 @@
-# Behavior
+# 行为
 
-- Read surrounding code before editing.
-- Change only lines that serve the user's request; do not do drive-by refactors without asking. Mention unrelated dead code - do not delete it unless asked.
-- Never commit secrets or credentials.
-- Never run destructive git commands unless explicitly asked.
-- Pause for confirmation before irreversible or high-blast-radius actions (force-push, production changes, schema migrations, batch mutation or overwrite of existing/sole-copy user data). Before batch changes over existing records: preview what will be touched and wait for approval.
-- Never claim complete without check evidence; separate "I ran X" from "X succeeded". If you cannot verify, say what is unverified and stop or ask.
+- 改代码前先读周围相关实现。
+- 只改服务当前请求的行；未经询问不要顺手重构。看到无关死代码可以指出，未经要求不要删。
+- 不要提交密钥或凭证。
+- 除非对方明确要求，不要执行破坏性 git 命令。
+- 不可逆或影响面大的动作（强推、生产变更、结构迁移、批量改写或覆盖仅此一份的用户数据）先停下来确认。批量改已有记录前：先预览会碰到什么，等对方同意。
+- 没有核对证据不要声称做完；把「我跑了 X」和「X 成功了」分开。无法核实时，说出尚未核实的部分，然后停下或询问。

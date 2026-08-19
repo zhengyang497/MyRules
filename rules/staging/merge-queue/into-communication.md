@@ -2,9 +2,15 @@
 
 ## Candidates
 
-<!-- empty after 2026-08-18 merge -->
+<!-- empty after 2026-08-19 merge -->
 
 ## Merged
+
+- [x] 2026-08-19 — 中文语体改为信、达、雅同时成立。真实失败：说明书长句（括号当字段目录、英文提纲节奏）被指出不像中文；改成大白话后又被指出不算专业。双极：（1）按中文组织句子，不要先写成英文再译；（2）专业判断和分点都保留，不要改成聊天口吻。删掉「能直接说出口」——它会把通顺收成口语。范围：沟通规则的中文语体段；点名方式、篇幅、立场各条仍在。
+  - Source: 用户审 global-55 确认段及随后几轮改写（2026-08-19）
+  - Merged: 2026-08-19 into `rules/user/communication.md`
+
+
 
 - [x] 2026-08-18 — Chinese register: judge the whole sentence, not whether each word is in the dictionary. Real failure: a summary opening used only real Chinese words but was not something a person would say; the 2026-08-16 line (do not invent phrases Chinese does not use) did not catch it. User rejected patching one syntactic pattern or quoting the bad sentence in the rule. Dual poles: (1) rewrite until the sentence can be spoken as ordinary Chinese; (2) still do not pad a short answer into literary prose, and still do not replace concrete nouns with empty words. Scope: the Chinese-register clause of the language bullet; naming examples unchanged.
   - Source: user review of a global-102 background reply, then rejected a one-pattern rule draft (2026-08-18)

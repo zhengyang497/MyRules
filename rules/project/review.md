@@ -2,7 +2,7 @@
 agents: [reviewer]
 ---
 
-# Review
+# 评审
 
-- Flag dependency-direction violations and parallel reinvention of existing shared paths as blocking.
-- If required acceptance work is mixed with opportunistic refactors, call that out and recommend splitting.
+- 依赖方向被破坏、或平行再造已有共用路径，标为阻断问题。
+- 必做的验收改动和顺手重构混在一起时，指出来并建议拆开。
