@@ -1,80 +1,56 @@
-# MyRules rule authoring
+# 怎么写规则
 
-How to write, prune, and merge rules in the **cache**. This file does **not**
-sync to consumer projects - read it when editing `~/.myrules/rules/`.
+本文件不同步到项目。编辑 `rules/user/` 或 `rules/project/` 之前先读完。
 
-Formal deployable rules live only in `rules/user/*.md` and `rules/project/*.md`.
-Drafts live in `rules/staging/`.
+可下发的规则只住在那两个目录。草稿和事故原委在 `staging/`。同步安全（保护名单、漂移、prune）在 skill 的 `REFERENCE.md`，不要抄进本文件。
 
-## Golden test (keep or delete)
+## 三把尺子
 
-For every line you add or keep, ask:
+### 1. 黄金测试
 
-> If I delete this line, is the agent **more likely to make a mistake**?
+每加一行或留一行，先问：删掉它，模型是否更容易犯错？会，就留；不会，就删。规则发胀之后，真正要紧的条目会被一起忽略。
 
-- **Yes** -> keep.
-- **No** -> delete. It only competes for attention with rules that matter.
+空话（「写可维护的代码」「小心 prompt」）以及删了也不改变行为的句子，通不过这把尺子。过期的也删：代码里已经修死、流程已经变、staging 里标了过期。
 
-Anthropic's warning applies here too: bloated rule files cause agents to ignore
-the instructions that actually matter.
+### 2. 见过再写
 
-## Stricter standard (after real failures)
+加约束要对应亲眼见过的模型失误。删约束则是模型已经强到这条显得多余。为想象中的失败写预防条款，通常是噪声。
 
-Prefer Addy Osmani's bar over guessing:
+例外是不可逆灾难（例如删掉无法恢复的数据）：优先做自动检查（Sensor），不要只靠条文劝模型听话，并标明你是故意打破「先看见再写」。项目里已经有 Sensor 时，不要再写一句含糊的 Guide；要么写出确切命令，要么靠检查本身。
 
-- **Add** a constraint only after a **real agent failure** you have seen.
-- **Remove** a constraint only when the model is strong enough that the rule
-  seems redundant.
-- In a mature file, **every line should trace to a mistake that actually happened**.
+### 3. 双极
 
-"Preventive" rules for imagined failures usually add noise. Exception: catastrophic,
-irreversible outcomes (e.g. deleting unrecoverable data) - prefer **Sensors**
-(automatic checks) over guide-only hope, and note that you are intentionally
-breaking the "seen it first" bar.
+真实失败是必要的，不够充分。只补刚听到的那一头，会把对面的失败变容易。「太长了所以以后永远要短」是同一类错。事故过程记在 `staging/articles/`，这里只留做法。
 
-## Dual poles (do not patch one incident into a mandate)
+增、扩、删之前：
 
-A real failure is necessary, not sufficient. Patching only the complaint you just heard **over-corrects**: the new line keeps that lesson and makes the opposite failure easier.
+1. 重读整份目标文件，不要只看正在改的那一段。
+2. 先写出对面那头的失败；写不出就还不能改。
+3. 新句子必须让对面那头也更难发生。一句撑不住两头，就停，不要再贴一条单向补丁。
+4. 不要把一次事故升成整文件的 always / never / all。约束收在失败所属的那类情境。
+5. 一堆单向补丁，宁愿收成一段双极文字，也不要再贴第四条。
 
-Seen 2026-08-13 on `rules/user/communication.md`: three successive patches from three complaints (too slogan-like → never be short; catalog answers → every explainer must be four steps; coined labels → definition outranks brevity). Each lesson was real. Together they removed any length ceiling. Proposing "always answer short" after "too long" is the same failure in the other direction.
+删条目也走同一测试：不能因为上一篇太长，就把「不要口号」删掉。
 
-Before adding, widening, or deleting a line:
+## 语体
 
-1. Re-read the **whole target file**, not only the paragraph you are editing.
-2. Name the **opposite** failure that file already records, or that you have already seen. If you cannot name it, you are not ready to patch — write both poles down first.
-3. The new sentence must still make that opposite failure **harder**, not easier. If one sentence cannot hold both poles, stop; do not append a one-way patch.
-4. Do not promote one incident into a file-wide mandate ("all explanations", "never compress", "always four sections"). Scope the constraint to the class of situation where it failed.
-5. Prefer **replacing a cluster of one-way patches** with one dual-pole paragraph over adding a fourth patch.
+可下发的规则用中文写，按中文组织句子，不要先写英文再译。信、达、雅要同时成立：意思准，句子顺，读起来像中文写成的说明。可以保留专业判断、术语、分点。
 
-Invalid: "never write short" or "always write short".
-Valid: a line that forbids slogans/jargon catalogs **and** forbids expanding a settled answer into a template essay.
+整句检查，不查单词。词都认得，仍可能是翻译腔或说明书腔。也不要为了通顺改成聊天口吻。分点里的句子仍用通顺书面中文，不要写成决议稿或口语速记。不要拿「句子宜短」当标准，那会收成碎句。
 
-Deleting a line is the same test in reverse: do not drop "no slogans" because the last answer was too long.
+规则正文是模型会跟着学的样本。语体含糊，回复也会含糊。怎么跟用户说话仍写在 `communication.md`；本文件只管改规则时怎么落笔。
 
-## 规则正文怎么写（语体）
+这一段自己的双极：说明书长句不像中文；改成大白话又不专业。新句子必须让这两头都更难发生。
 
-可下发的规则写成中文。按中文组织句子，不要先写成英文再译。信、达、雅要同时成立，不是互斥的：意思要准，句子要顺，读起来像中文写成的说明。专业判断、术语、分点都可以留。
-
-整句检查，不查单词。词都认得，仍可能是翻译腔或说明书腔，例如把几层意思挤进一句、用括号当字段目录、用「和 X 一样……两端读同一份」这种英文提纲节奏。也不要为了通顺改成聊天口吻：不要用凑、搁、点头、别另起炉灶这类口头禅替换准确说法。
-
-结构可以分点；分点里的句子仍用通顺书面中文，不要把分点写成决议稿，也不要写成口语速记。不要用「句子宜短」当标准，那会收成碎句。
-
-规则正文是模型会跟着学的样本。语体含糊，回复也会含糊。活约束仍写在 `communication.md`；本文件管的是**改规则时**怎么落笔。
-
-2026-08-19 见过的双极：说明书长句不像中文；改成大白话又不专业。新句子必须让这两头都更难发生。
-
-反例：「和股票代码表一样，放项目下的 `.llm-wiki` 里一份 JSON（开不开、页路径、预算），桌面和命令行读同一份。」
+反例：「和股票代码表一样，放项目下的 `.llm-wiki` 里一份 JSON（开不开、页路径、预算），桌面和命令行读同一份。」  
 正例：「放在项目的 `.llm-wiki` 下，和股票代码表同类，不进 wiki 正文。设置里改完，桌面导入和命令行都读这一份。」
 
-## What belongs in deployable rules (`user/` / `project/`)
+## 放哪里
 
-`rules/user/` holds personal rules that apply to **all** roles (communication,
-behavior baseline). `rules/project/` holds project-specific rules that can be
-scoped to sub-agent roles via frontmatter.
+`rules/user/`：所有角色都要的个人规则。不要写 `agents:`。  
+`rules/project/`：可以按角色收窄。好的条目具体、可执行、能说明沉默为什么危险。
 
-### `agents` frontmatter (`project/` only)
-
-Optional YAML at the top of `rules/project/*.md` files:
+`project/` 可用：
 
 ```yaml
 ---
@@ -82,107 +58,23 @@ agents: [implementer, reviewer]
 ---
 ```
 
-| `agents` value | Rules channel (alwaysApply) | Agents channel (sub-agent bundles) |
-|----------------|----------------------------|----------------------------------|
-| omitted | Deployed, full load | **Skipped** - sync warns; add explicit `agents:` |
-| `all` | Deployed, full load | Included in planner, implementer, and reviewer |
-| `[planner]` etc. | Deployed, full load | Only in matching role bundle(s) |
+| `agents` | 规则频道 | 子代理包 |
+|----------|----------|----------|
+| 省略 | 仍全量加载 | 跳过并告警；补上明确列表 |
+| `all` | 全量加载 | planner、implementer、reviewer 都带 |
+| `[planner]` 等 | 全量加载 | 只进列出的角色 |
 
-Frontmatter is stripped before rules deploy. User rules never use `agents:` - all
-`rules/user/*.md` files are included in every sub-agent bundle.
+Frontmatter 在部署前会剥掉。角色固定为 planner、implementer、reviewer。
 
-Sub-agent roles (fixed): **planner**, **implementer**, **reviewer**. One `sync`
-writes rules to `.cursor/rules/` / `.claude/rules/` and agents to
-`.cursor/agents/` / `.claude/agents/`.
+## 改完怎么走
 
-Good lines are:
-
-- **Specific** - which files, which commands, which workflow.
-- **Actionable** - a clear next step ("propose a plan and wait for confirmation").
-- **Justified** - why silence is dangerous (e.g. no tests, silent failure).
-
-Bad lines (placeholder rules):
-
-- "Write high-quality, maintainable, readable code."
-- "Be careful with prompts."
-- Anything that would not change agent behavior if removed.
-
-## Guide vs Sensor
-
-| | Guide (rule text) | Sensor (automatic check) |
-|--|-------------------|---------------------------|
-| Role | Convince the agent to do something | Block or fail regardless of intent |
-| Example | "Run tests before claiming done" | `npm test` in CI; `node --test` in MyRules |
-| Risk | Agent may skip | Harder to skip |
-
-If the project already has a Sensor (build fails on type errors, sync refuses
-when cache is dirty, tests must pass), do not rely on a vague guide alone.
-Either name the exact command (`npm run build` must be green) or lean on the
-Sensor.
-
-MyRules Sensors (not rules): `sync.js` drift skip, dirty-cache abort, prune
-fingerprint gate, `node --test` in this repo.
-
-## Prune expired rules
-
-Delete guide lines when:
-
-- The bug is fixed in code and cannot recur.
-- The workflow changed and the line is obsolete.
-- The line is marked expired in staging notes.
-
-Stale rules are like stale comments - they crowd out what still matters.
-
-## Size
-
-Keep each deployable `rules/user/*.md` and `rules/project/*.md` file **lean**
-(practical target: under ~300 lines per file). If growing, split by topic
-(`behavior.md`, `communication.md`, …) or move narrative to
-`rules/staging/articles/`.
-
-## Harness habit
-
-When an agent makes a mistake while you work:
-
-1. Fix the immediate issue.
-2. **Do not** open the matching rule file and append a patch in the same turn.
-   Write both poles (this failure **and** the opposite one) first. Then engineer
-   a dual-pole line — or replace a one-way cluster — so the mistake is less
-   likely to recur **and** less likely to cause the opposite mistake.
-3. Capture source in `rules/staging/articles/` if helpful.
-4. Merge into `user/` or `project/` when polished - not every note belongs in
-   deployable rules. Meta constraints (how to edit rules) go in this file, not
-   in `communication.md` / `behavior.md`.
-
-## Staging workflow
+先修眼前的问题。同一轮里不要打开对应规则文件往上贴补丁。先写下这一头和对面那头，再写成双极句子。
 
 ```
-Article / incident
-  -> rules/staging/articles/<slug>.md
-  -> rules/staging/merge-queue/into-*.md
-  -> rules/user/*.md or rules/project/*.md
-  -> push.js -> sync.js
+文章或事故 → staging/articles/ → staging/merge-queue/into-*.md
+  → user/ 或 project/ → push.js → sync.js
 ```
 
-Do **not** put meta-authoring content into `merge-queue` for `behavior.md`
-unless it is also a live coding constraint. This file (`meta/authoring.md`) is
-the home for "how to write rules."
+不是每条笔记都该变成可下发规则。怎么写规则只放在本文件，不要写进沟通或行为规则。每个可下发文件保持精瘦（大约不超过 300 行）；变长就按主题拆，或把叙事挪到 `staging/articles/`。
 
-## MyRules vs AGENTS.md / CLAUDE.md
-
-Consumer projects use **MyRules deploy artifacts** (`myrules-*`), not hand-edited
-`AGENTS.md` or `CLAUDE.md` (see Protect list in skill `REFERENCE.md`).
-
-Auto-loading for synced projects = `myrules-*.mdc` from the cache. "Auto生效"
-means: edit cache -> push -> sync - not a manual memory-export drag each session.
-
-## Quick checklist before merge
-
-- [ ] Golden test passed for each new line
-- [ ] Dual-pole check: opposite failure named; new line still makes it harder
-- [ ] Constraint scoped to the incident class, not widened to "always / never / all"
-- [ ] Not a placeholder or duplicate of superpowers skills without a stricter personal bar
-- [ ] Deduplicated against existing `user/` / `project/` files
-- [ ] Expired lines from staging removed, not copied forward
-- [ ] File still lean; split topic if needed
-- [ ] 规则正文通过语体检查：信、达、雅；不是英文提纲，也不是口语速记
+消费项目用同步出来的 `myrules-*`。自动生效是：改缓存 → push → sync。
