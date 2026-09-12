@@ -10,6 +10,7 @@ MyRules repo clone / shallow clone otherwise.
 | User intent | Command |
 |-------------|---------|
 | Import / install MyRules skill from GitHub (**bootstrap** step 1) | `node "<myrules-clone>/tools/sync/install-skill.js" --project "<workspace>"` |
+| Lay down project-method skeleton once (**step 3**) | `node "$HOME/.myrules/tools/sync/init-project-method.js" --project "<workspace>"` — or from a clone when `~/.myrules/` does not exist yet. Already initialized: refuse unless the user asked to `--force` |
 | Sync into this project (rules + agents + hooks; existing skills kept, not re-fetched) | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>"` — or `node "<myrules-clone>/tools/sync/sync.js" --project "<workspace>"` when `~/.myrules/` does not exist yet |
 | Refresh external skills from GitHub (then keep local copies if fetch fails) | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --update-skills` |
 | Sync every registered project on this machine | `node "$HOME/.myrules/tools/sync/sync.js" --all` |

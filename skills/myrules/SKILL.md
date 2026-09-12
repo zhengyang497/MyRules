@@ -2,8 +2,9 @@
 name: myrules
 description: >
   Sync MyRules cache to Cursor/Claude projects. Use for bootstrap (install skill then sync),
-  sync/export/push/prune/status, or when the user says「sync my rules」「同步我的规则」
-  「设置 MyRules」「导入 MyRules」「从 GitHub 安装 MyRules」.
+  sync/export/push/prune/status, laying down the project-method skeleton, or when the user
+  says「sync my rules」「同步我的规则」「设置 MyRules」「导入 MyRules」
+  「从 GitHub 安装 MyRules」「布置仓库」「布置项目工作法」「按方法论初始化」.
 ---
 
 # MyRules
@@ -57,16 +58,36 @@ Run one command from [`COMMANDS.md`](COMMANDS.md) (sync row), then verify:
    stop and tell the user — suggest `export` or `--force` after confirmation)
 5. Status JSON: `lastSyncAt` is set and recent
 
+### Step 3 — project-method skeleton (once)
+
+User says **「布置仓库」**, **「布置项目工作法」**, or **「按方法论初始化」**.
+
+This copies `templates/project-method/` into the project **once**. Those files
+are owned by the project after that. Later `sync.js` does **not** update or
+overwrite them.
+
+1. Run `node "$HOME/.myrules/tools/sync/init-project-method.js" --project "<workspace>"`
+   (or the same script from a MyRules clone when the cache does not exist yet).
+2. If the project already has `docs/方法/项目工作法.md`, the script refuses.
+   Only pass `--force` when the user explicitly wants to overwrite the skeleton.
+   `--force` still leaves an existing `README.md` and `.myrules-context.md` alone.
+3. Remind the user to write the current purpose in `.myrules-context.md` and to
+   register the first board item with `npm run board -- add`.
+
+**Done when:** `init-project-method.js` exits 0, `docs/方法/项目工作法.md` and
+`scripts/board.mjs` exist, and `.cursor/rules/` has `项目工作法.mdc` (not a
+`红线.mdc` and not `myrules-*` copies of the method files).
+
 ### One-shot setup
 
 If the user says **「帮我设置 MyRules」**, still do **step 1 then step 2** in
-order.
-
+order. That does **not** lay down the project-method skeleton — see step 3.
 ## Branch routing
 
 | User intent | Read | Done when |
 |-------------|------|-----------|
 | Daily sync | [`COMMANDS.md`](COMMANDS.md) → sync | Sync completion criteria above |
+| Lay down project-method skeleton | [`COMMANDS.md`](COMMANDS.md) → init-project-method | Step 3 completion criteria above |
 | Edit cache content | Read `~/.myrules/rules/meta/authoring.md`, then [`REFERENCE.md`](REFERENCE.md) content map + [`COMMANDS.md`](COMMANDS.md) push + sync | `push.js` exit 0 + sync criteria |
 | Local artifact edits | [`COMMANDS.md`](COMMANDS.md) → export or `--force` | User confirms before `--force` |
 | Take over legacy rules | [`COMMANDS.md`](COMMANDS.md) → prune (dry-run first) | Dry-run fingerprint matches before real prune |

@@ -29,13 +29,16 @@ Full content map (sources, deploy targets, and notes):
 
 - **`skills/myrules/`** — bootstrap skill copied into each project by
   `install-skill.js` (not listed in `skills-manifest.js`).
+- **`templates/project-method/`** — project-method skeleton copied **once** by
+  `init-project-method.js`. After copy, the project owns those files; `sync.js`
+  does not update them. Generic hard constraints stay in `rules/user/behavior.md`.
 - **`<project>/.myrules-context.md`** — optional per-project file for the
   `session-start-context` hook; you write it in each project yourself.
 
 ## First use in a project
 
-MyRules uses **two steps**. Step 1 must happen before the Agent understands
-phrases like「sync my rules」.
+MyRules uses **two steps** to get rules into a project, then an optional
+**third step** to lay down the project-method skeleton.
 
 ### Step 1 — Import MyRules skill (natural language)
 
@@ -71,6 +74,19 @@ the project. The same phrase covers the first deploy and all later updates.
 
 If the user says **「帮我设置 MyRules」** in one sentence, the Agent should still
 do step 1 then step 2 in order.
+
+### Step 3 — Project-method skeleton (optional, once)
+
+Ask the Agent:
+
+> **「布置仓库」**  
+> **「布置项目工作法」**  
+> **「按方法论初始化」**
+
+The Agent runs `init-project-method.js`. That copies `templates/project-method/`
+into the project (docs, board scripts, method skill and rules). It refuses if
+the skeleton is already there, unless you explicitly ask to `--force`. Existing
+`README.md` and `.myrules-context.md` are never overwritten.
 
 See [`skills/myrules/SKILL.md`](skills/myrules/SKILL.md) for the agent-oriented
 workflow (bootstrap steps, completion criteria, branch routing).

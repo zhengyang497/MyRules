@@ -17,6 +17,7 @@ Vocabulary (used throughout this skill):
 | Hooks | `hooks/user/*.js`, `hooks/project/*.js` | Cursor: `hooks.json` + `myrules-*.js`; Claude: `myrules-hook-*.md` convention docs only | See seed hooks `session-log`, `session-start-context` |
 | External skills | `skills-manifest.js` | `~/.cursor/skills/<name>/`, `~/.claude/skills/<name>/` | Never list `myrules` here; optional `path` extracts a monorepo subfolder |
 | Bootstrap skill | `skills/myrules/*` | Project `.cursor/skills/myrules/` (and `.claude/skills/myrules/`) | Via `install-skill.js` |
+| Project-method skeleton | `templates/project-method/` | Copied into the project by `init-project-method.js` | **Once.** Project-owned after copy. `sync.js` never updates these files. Generic hard constraints live in `rules/user/behavior.md`, not in this template |
 | Rule authoring (meta) | `rules/meta/*.md` | *(not deployed)* | Read in cache before editing `user/` / `project/` |
 | Project context | — | `<project>/.myrules-context.md` | User writes per project; not synced |
 
