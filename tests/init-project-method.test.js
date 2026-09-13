@@ -136,3 +136,17 @@ test('bundled template has method docs, board scripts, and no 红线 files', () 
   assert.strictEqual(fs.existsSync(path.join(dir, 'README.md')), false);
   assert.strictEqual(fs.existsSync(path.join(dir, 'package.json')), false);
 });
+
+test('bundled board-server chrome matches wiki fonts, sizes, and frame', () => {
+  const src = fs.readFileSync(path.join(REPO_ROOT, 'templates', 'project-method', 'scripts', 'board-server.mjs'), 'utf8');
+  assert.ok(src.includes('font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'));
+  assert.ok(src.includes('width: 264px'));
+  assert.ok(src.includes('.side h1 { margin: 0 0 2px; font-size: 18px; }'));
+  assert.ok(src.includes('.stat strong { color: var(--text); font-size: 16px; margin-right: 4px; }'));
+  assert.ok(src.includes('background: linear-gradient(135deg, rgba(248, 81, 73, 0.14), rgba(248, 81, 73, 0.05))'));
+  assert.ok(src.includes('class="side"'));
+  assert.ok(src.includes('class="cockpit"'));
+  assert.ok(src.includes('improvements-board-node'));
+  assert.ok(src.includes('/health'));
+  assert.ok(src.includes('左侧树切换 · 选择会记住'));
+});
