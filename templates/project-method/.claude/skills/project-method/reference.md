@@ -10,7 +10,7 @@
 | 总表 | `docs/设计目标检查清单.md` |
 | 看板卡 | `docs/看板/items/item-N.md`（页眉经脚本改，正文按普通 markdown 改） |
 | 登记 / 改状态 | `npm run board -- add` / `patch` / `summary` / `next` / `get` |
-| 看板页 | `npm run board:server` → http://localhost:8080/ |
+| 看板页 | `npm run board:server` → http://localhost:8080/（上方只读目标面，按状态列目标册） |
 | 空白模板 | 本目录 `templates/`（设计目标、检查清单、看板卡） |
 
 新建设计目标时，先复制对应模板。不要去卡片目录里挑今天干什么。不要把讨论文稿当收件箱。没说登记，不要为了走流程去 add。修 bug、补刀有相关旧项时，写进旧卡（或挂子项），不要另开父项。口号进册要人点头，不要从讨论文稿爬进去。

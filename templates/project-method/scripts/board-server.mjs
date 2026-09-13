@@ -6,6 +6,7 @@ import { createServer } from "http"
 import { resolve } from "path"
 import { pathToFileURL } from "url"
 import { readItems } from "./board-io.mjs"
+import { loadGoalLedger, renderGoalsPanel, unfinishedGoalCount } from "./goal-ledger.mjs"
 
 const PORT = parseInt(process.env.PORT || "8080", 10)
 
@@ -197,10 +198,12 @@ function layerBlock(id, title, color, items, emptyText) {
       </section>`
 }
 
-export function renderBoardHtml(allItems) {
+export function renderBoardHtml(allItems, goals = []) {
   const items = boardItems(allItems)
   const ended = allItems.filter(isEndedItem).sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
   const cockpit = buildCockpit(allItems)
+  const goalsPanel = renderGoalsPanel(goals)
+  const unfinishedGoals = unfinishedGoalCount(goals)
   const byPlacement = new Map(PLACEMENT_ORDER.map((p) => [p, []]))
   for (const item of items) {
     byPlacement.get(placementOf(item)).push(item)
@@ -224,11 +227,13 @@ export function renderBoardHtml(allItems) {
   const views = [
     view(
       "all",
-      renderCockpit(cockpit) +
+      goalsPanel +
+        renderCockpit(cockpit) +
         PLACEMENT_ORDER.map((place) =>
           layerBlock(place, PLACEMENT_NAMES[place], PLACEMENT_COLORS[place], byPlacement.get(place), "该组暂无未完成项"),
         ).join(""),
     ),
+    view("goals", goalsPanel),
     ...PLACEMENT_ORDER.map((place) =>
       view(
         place,
@@ -570,6 +575,87 @@ export function renderBoardHtml(allItems) {
       border-radius: 3px;
       font-size: 11px;
     }
+    .goals {
+      flex-shrink: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 4px solid #8957e5;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .goals-head {
+      padding: 10px 16px 8px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(137, 87, 229, 0.08);
+    }
+    .goals-head h2 {
+      margin: 0;
+      font-size: 15px;
+    }
+    .goals-head p {
+      margin: 4px 0 0;
+      color: var(--text-dim);
+      font-size: 12px;
+    }
+    .goals-group {
+      border-bottom: 1px solid var(--border);
+    }
+    .goals-group:last-child { border-bottom: none; }
+    .goals-group summary {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      user-select: none;
+      list-style: none;
+    }
+    .goals-group summary::-webkit-details-marker { display: none; }
+    .goals-group summary::before {
+      content: "▶";
+      color: var(--text-dim);
+      font-size: 10px;
+      transition: transform 0.15s;
+    }
+    .goals-group[open] summary::before { transform: rotate(90deg); }
+    .goals-status { font-weight: 600; }
+    .goals-rows { padding: 0 0 8px; }
+    .goals-row {
+      padding: 8px 16px 8px 28px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    .goals-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .goals-row .title {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: unset;
+    }
+    .goals-cap {
+      color: var(--text-dim);
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .goals-none {
+      color: var(--text-dim);
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .goals-look {
+      margin: 4px 0 0 0;
+      color: var(--text-dim);
+      font-size: 12px;
+    }
+    .goals-empty {
+      padding: 10px 16px;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
     footer {
       margin-top: auto;
       padding-top: 10px;
@@ -595,6 +681,10 @@ export function renderBoardHtml(allItems) {
         <span class="tree-name">全部</span>
         <span class="tree-prog">${items.length} 项</span>
       </button>
+      <button type="button" class="tree-node tree-all" data-node="goals" style="--accent: #8957e5">
+        <span class="tree-name">目标册</span>
+        <span class="tree-prog">${unfinishedGoals} 未做成</span>
+      </button>
       ${treeNav}
       <div class="tree-lib">
         <button type="button" class="tree-node tree-lib-btn" data-node="done" style="--accent: ${DONE_COLOR}">
@@ -605,7 +695,7 @@ export function renderBoardHtml(allItems) {
       </div>
     </nav>
     <footer>
-      数据来源: docs/看板/items/*.md · 左侧树切换 · 选择会记住
+      数据来源: 目标册总表 + docs/看板/items/*.md · 左侧树切换 · 选择会记住
     </footer>
   </aside>
   <div class="wrap">
@@ -660,7 +750,7 @@ export function startBoardServer(port = PORT, { listen = true } = {}) {
     }
     if (url === "/" || url === "") {
       try {
-        const html = renderBoardHtml(loadAllItems())
+        const html = renderBoardHtml(loadAllItems(), loadGoalLedger())
         res.writeHead(200, {
           "Content-Type": "text/html; charset=utf-8",
           "Cache-Control": "no-store",
