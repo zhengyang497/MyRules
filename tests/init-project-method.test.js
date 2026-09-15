@@ -137,6 +137,9 @@ test('bundled template has method docs, board scripts, and no 红线 files', () 
   const gate = fs.readFileSync(path.join(dir, '.cursor', 'rules', '项目工作法.mdc'), 'utf8');
   assert.match(gate, /先读技能 `project-method`/);
   assert.doesNotMatch(gate, /禁止人手改/);
+  const skill = fs.readFileSync(path.join(dir, '.cursor', 'skills', 'project-method', 'SKILL.md'), 'utf8');
+  assert.match(skill, /标完成/);
+  assert.doesNotMatch(skill, /five execution flows/);
   assert.ok(fs.existsSync(path.join(dir, '.myrules-context.md')));
   assert.strictEqual(fs.existsSync(path.join(dir, '.cursor', 'rules', '红线.mdc')), false);
   assert.strictEqual(fs.existsSync(path.join(dir, 'docs', '红线.md')), false);

@@ -1,13 +1,9 @@
 ---
 name: project-method
 description: >-
-  Runs this project's working method: goals live in design-goal 文首 with status
-  (slogan / partial / done), optional board cards that are not an entry gate,
-  checklist sync including unfinished goals, five execution flows including a
-  three-stage 目标审计. Use when the user says 先登记, 看板, 改进清单, or 开一项, changes
-  purpose, asks what counts as done, borrows from another codebase, or mentions
-  做成标准, 设计目标, 检查清单, 总账领号, 一卡一页, 出口成能力, 项目工作法, 目的变了, 审计,
-  目标审计, 项目目标审计, 口号, or 目标册.
+  Runs this project's working method. Use when the user says 登记, 先登记, 开一项, 标完成, 关卡, 收尾,
+  改目的, 目的变了, 写文首, 目标审计, 项目目标审计, or mentions 看板卡, 改进清单, 设计目标, 目标册,
+  口号进册, 检查清单, 一卡一页, 项目工作法, or borrows from another codebase.
   Do not treat this skill as a reason to create a board item, and do not require
   a board item before changing code. Bugfixes and follow-ups, if registered,
   go under the related old item as a sub-item, not a new parent card.
