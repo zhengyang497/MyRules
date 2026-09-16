@@ -10,7 +10,7 @@ const WORKER_FOOTERS = {
   publisher:
     '\n\n## 工人纪律\n\n你是出版工人；仅在人已点头后改文首和总表；不许发明句子；不要改业务代码。忽略 session 开场注入的目的句。\n',
   implementer:
-    '\n\n## 工人纪律\n\n禁止改目标册（`docs/能力`、`docs/设计目标检查清单.md`、ledger 里的 PURPOSE/GOALS）。范围只来自当前派工卡。忽略 session 开场注入的目的句，不要据此改目标。\n',
+    '\n\n## 工人纪律\n\n禁止改现行目标册、总表、ledger 里的 PURPOSE/GOALS。路径见 runtime；若有未加前缀的落地工作法，以那份为准。范围只来自当前派工卡和已出版文首。忽略 session 开场注入的目的句，不要据此改目标。\n',
   researcher:
     '\n\n## 工人纪律\n\n只读。不改目标。不把「我们应该做成什么」当结论。忽略 session 开场注入的目的句。\n',
   reviewer:

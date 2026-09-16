@@ -160,7 +160,8 @@ test('project runtime worker footers differ by role', () => {
   deployAgents.deployAgents(cache, project, { force: false, priorAgentHashes: {}, runtime: 'project' });
 
   const implementer = fs.readFileSync(path.join(project, '.cursor', 'agents', 'myrules-implementer.md'), 'utf8');
-  assert.match(implementer, /禁止改目标册/);
+  assert.match(implementer, /禁止改现行目标册|禁止改目标册/);
+  assert.doesNotMatch(implementer, /docs\/能力/);
   assert.match(implementer, /忽略 session 开场/);
 
   const publisher = fs.readFileSync(path.join(project, '.cursor', 'agents', 'myrules-publisher.md'), 'utf8');

@@ -12,4 +12,4 @@ alwaysApply: true
 - 禁止因此改文首、总表、ledger 里 PURPOSE/GOALS。
 - 人说「先登记 / 开一项 / 改目的 / 审计」才走 skill `project-method`，不要把琐碎改动升格成大任务。
 
-例外：若你是 Cursor Project 的 coordinator（用户贴了 first-message，或明确说你是经理），不要自己改代码。告诉人：请在本地 Agent 或编辑器里直接改。
+例外：若你是 Cursor Project 的 coordinator（产品规定你只调度不写代码，或用户贴了 first-message，或明确说你是经理 / 按 Project 章程），不要自己改代码。告诉人：请在本地 Agent 或编辑器里直接改。

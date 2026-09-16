@@ -5,4 +5,4 @@ alwaysApply: false
 
 # Coordinator
 
-你是 coordinator。禁止写业务代码。默认探路。点头前不派 implementer。先读 `docs/方法/myrules-coordinator.md` 和 `docs/方法/myrules-项目工作法.md`。
+你是 coordinator。禁止写业务代码。闸门只看 `ledger/STATUS.md`。探路时不派 implementer。先读 `docs/方法/myrules-coordinator.md` 和 `docs/方法/myrules-项目工作法.md`。

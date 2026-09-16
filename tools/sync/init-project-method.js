@@ -6,7 +6,10 @@ const runtimeLib = require('./lib/runtime');
 const loadManifest = require('./lib/load-manifest');
 
 const CHECKLIST_REL = path.join('docs', '设计目标检查清单.md');
+const OVERLAY_METHOD_REL = path.join('docs', '方法', '项目工作法.md');
 const CONTEXT_REL = '.myrules-context.md';
+const STATUS_CONSTRUCTION_HINT =
+  '已有目标册。ledger/STATUS.md 仍是探路；要施工时请人改成可施工。不要自动翻闸门。';
 const README_STUB = `# 项目名称
 
 （用一句话说明本项目是做什么的、解决谁的什么问题。）
@@ -51,6 +54,34 @@ function parseArgs(argv) {
     else if (argv[i] === '--template-dir') i += 1;
   }
   return args;
+}
+
+function listMarkdownFiles(dir, acc = []) {
+  if (!fs.existsSync(dir)) return acc;
+  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+    const abs = path.join(dir, ent.name);
+    if (ent.isDirectory()) listMarkdownFiles(abs, acc);
+    else if (ent.isFile() && ent.name.endsWith('.md')) acc.push(abs);
+  }
+  return acc;
+}
+
+function checklistHasGoals(text) {
+  return String(text)
+    .split(/\r?\n/)
+    .some((line) => {
+      const m = line.match(/^\|\s*([^|]+)\|/);
+      if (!m) return false;
+      const id = m[1].trim();
+      return id && id !== 'ID' && !/^-+$/.test(id);
+    });
+}
+
+function hasExistingGoalShelf(projectRoot) {
+  if (fs.existsSync(path.join(projectRoot, OVERLAY_METHOD_REL))) return true;
+  const checklist = path.join(projectRoot, CHECKLIST_REL);
+  if (fs.existsSync(checklist) && checklistHasGoals(fs.readFileSync(checklist, 'utf8'))) return true;
+  return listMarkdownFiles(path.join(projectRoot, 'docs', '能力')).length > 0;
 }
 
 function writeIfMissing(abs, content) {
@@ -153,6 +184,7 @@ function run(opts = {}) {
     );
   }
 
+  const alreadyHadGoals = hasExistingGoalShelf(projectRoot);
   runtimeLib.writeRuntimeFile(projectRoot, runtime);
   ensureInstance(projectRoot, runtime);
 
@@ -169,6 +201,10 @@ function run(opts = {}) {
     force,
   });
 
+  if (runtime === 'project' && alreadyHadGoals && !opts.quiet) {
+    console.log(STATUS_CONSTRUCTION_HINT);
+  }
+
   if (!opts.quiet) {
     console.log(`Arranged ${runtime} runtime in ${projectRoot}`);
     if (runtime === 'project') {
@@ -181,7 +217,13 @@ function run(opts = {}) {
     }
   }
 
-  return { projectRoot, runtime, switched: Boolean(current) && current !== runtime, syncResult };
+  return {
+    projectRoot,
+    runtime,
+    switched: Boolean(current) && current !== runtime,
+    syncResult,
+    alreadyHadGoals,
+  };
 }
 
 if (require.main === module) {
@@ -199,4 +241,6 @@ module.exports = {
   getBundledTemplateDir,
   mergeEnvironment,
   HOSTED_SCRIPTS,
+  hasExistingGoalShelf,
+  STATUS_CONSTRUCTION_HINT,
 };

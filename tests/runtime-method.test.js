@@ -132,9 +132,12 @@ test('arrange project writes ledger, charter, coordinator rule, and small-edit a
   const session = methodMdc(project, 'myrules-method-session.mdc');
   assert.match(session, /alwaysApply:\s*true/);
   assert.match(session, /可以写业务代码/);
+  assert.match(session, /产品/);
+  assert.match(session, /first-message/);
   const alwaysApplyText = alwaysApplyMethodText(project);
   assert.doesNotMatch(alwaysApplyText, /禁止写业务代码/);
   assert.doesNotMatch(alwaysApplyText, /你是普通 Agent 主会话/);
+  assert.match(coord, /STATUS/);
   assert.match(fs.readFileSync(path.join(project, 'docs', '方法', 'myrules-first-message.md'), 'utf8'), /琐碎改动/);
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-researcher.md')));
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-publisher.md')));
@@ -294,3 +297,76 @@ test('same runtime arrange without force refuses', () => {
   arrange(project, cache, 'agent');
   assert.throws(() => arrange(project, cache, 'agent'), /Already arranged|Use sync/);
 });
+
+test('empty project arrange stays 探路 and does not hint construction', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-empty-hint-');
+  installSkill(project);
+  const logs = [];
+  const orig = console.log;
+  console.log = (...args) => logs.push(args.join(' '));
+  try {
+    const result = initCli.run({ ...syncOpts(project, cache), runtime: 'project', quiet: false });
+    assert.strictEqual(result.alreadyHadGoals, false);
+  } finally {
+    console.log = orig;
+  }
+  assert.doesNotMatch(logs.join('\n'), /已有目标册/);
+  assert.match(fs.readFileSync(path.join(project, 'ledger', 'STATUS.md'), 'utf8'), /探路/);
+  assert.doesNotMatch(fs.readFileSync(path.join(project, 'ledger', 'STATUS.md'), 'utf8'), /可施工/);
+});
+
+test('overlay method file prints STATUS hint and leaves 探路', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-overlay-hint-');
+  installSkill(project);
+  write(path.join(project, 'docs', '方法', '项目工作法.md'), '# overlay\n');
+  const logs = [];
+  const orig = console.log;
+  console.log = (...args) => logs.push(args.join(' '));
+  try {
+    const result = initCli.run({ ...syncOpts(project, cache), runtime: 'project', quiet: false });
+    assert.strictEqual(result.alreadyHadGoals, true);
+  } finally {
+    console.log = orig;
+  }
+  assert.match(logs.join('\n'), /已有目标册/);
+  assert.match(logs.join('\n'), /可施工/);
+  const status = fs.readFileSync(path.join(project, 'ledger', 'STATUS.md'), 'utf8');
+  assert.match(status, /探路/);
+  assert.doesNotMatch(status, /闸门：可施工/);
+  assert.strictEqual(fs.readFileSync(path.join(project, 'docs', '方法', '项目工作法.md'), 'utf8'), '# overlay\n');
+});
+
+test('non-empty standard checklist prints STATUS hint', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-goals-hint-');
+  installSkill(project);
+  write(
+    path.join(project, 'docs', '设计目标检查清单.md'),
+    '# 设计目标检查清单\n\n| ID | 功能 | 目标 | 状态 | 对比时看什么 | 验证方式 | 项目 | 出处 |\n|---|---|---|---|---|---|---|---|\n| G1 | Foo | 人能断定 | 口号 | 无 | 人抽查 |  |  |\n'
+  );
+  const result = initCli.run({ ...syncOpts(project, cache), runtime: 'project', quiet: true });
+  assert.strictEqual(result.alreadyHadGoals, true);
+  assert.match(fs.readFileSync(path.join(project, 'ledger', 'STATUS.md'), 'utf8'), /探路/);
+});
+
+test('hand-edited project-method skill is skipped on later sync', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-skill-drift-');
+  arrange(project, cache, 'project');
+  const skillFile = path.join(project, '.cursor', 'skills', 'project-method', 'SKILL.md');
+  const original = fs.readFileSync(skillFile, 'utf8');
+  fs.writeFileSync(skillFile, `${original}\nHAND_EDIT_SKILL\n`);
+  const warns = [];
+  const origWarn = console.warn;
+  console.warn = (...args) => warns.push(args.join(' '));
+  try {
+    syncCli.run(syncOpts(project, cache));
+  } finally {
+    console.warn = origWarn;
+  }
+  assert.match(fs.readFileSync(skillFile, 'utf8'), /HAND_EDIT_SKILL/);
+  assert.match(warns.join('\n'), /method file/);
+});
+

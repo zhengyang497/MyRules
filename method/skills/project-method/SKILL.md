@@ -13,8 +13,10 @@ description: >-
 
 先读仓库根 `.myrules-runtime.json`。
 
+若存在未加前缀的 [`docs/方法/项目工作法.md`](../../../docs/方法/项目工作法.md)，路径、总表、登记命令以那份为准。
+
 - `agent`：读 [`docs/方法/myrules-项目工作法.md`](../../../docs/方法/myrules-项目工作法.md) 和 [`docs/方法/myrules-runtime.md`](../../../docs/方法/myrules-runtime.md)。登记走 `npm run board`（托管脚本）。主会话可以写代码。
-- `project`：读工作法、runtime、[`docs/方法/myrules-coordinator.md`](../../../docs/方法/myrules-coordinator.md)。本地主会话可以写代码；琐碎改动直接做。只有用户贴了 first-message 或明确说你是经理时，你才是 coordinator：那时不要自己写业务代码；活看板在 `ledger/board/`；点头后派 publisher 出版 git 文首。
+- `project`：读工作法、runtime、[`docs/方法/myrules-coordinator.md`](../../../docs/方法/myrules-coordinator.md)。本地主会话可以写代码、点头后可以自己写文首。只有产品规定你只调度不写代码、或用户贴了 first-message、或明确说你是经理时，你才是 coordinator：那时不要自己写业务代码；活看板在 `ledger/board/`；点头后派 publisher 出版 git 文首。闸门只看 `ledger/STATUS.md`。
 
 模板与逐步核对见 [reference.md](reference.md)。
 
@@ -36,7 +38,7 @@ description: >-
 
 ### project 分支
 
-在 `ledger/board/` 写卡。不要要求跑 `npm run board`。默认探路：没点头、没出版之前禁止派 implementer。
+在 `ledger/board/` 写卡。不要要求跑 `npm run board`（脚本只可查阅/归档）。闸门只看 STATUS：探路时禁止派 implementer。
 
 ## 写进目标册时：三步判断
 
@@ -51,7 +53,7 @@ description: >-
 
 ### project 出版
 
-draft 不是规格。人点头后同一轮派 publisher 写入 git 文首和总表。工人读文首，不读 draft 当目标。
+draft 不是规格。人点头后：coordinator 同一轮派 publisher 写入 git 文首和总表；本地主会话可以自己写文首并抄总表。工人读文首，不读 draft 当目标。
 
 ## 按情况进流程
 
@@ -67,7 +69,7 @@ draft 不是规格。人点头后同一轮派 publisher 写入 git 文首和总�
 
 改了任何一篇已出版文首之后：
 
-1. 把 `docs/设计目标检查清单.md` 对应行抄成与文首逐字相同，含状态。
+1. 把 `docs/设计目标检查清单.md` 对应行抄成与文首逐字相同，含状态。有未加前缀落地文件时，总表路径以那份为准。
 2. 只看 focus，以及标题明显对着刚改那条目标的进行中项。不翻 done 卡。若改口作废了碰到的旧卡做法，加「已由 … 替代」。
 3. 若已出版目的句变了，同步 `.myrules-context.md`。
 
@@ -75,4 +77,4 @@ draft 不是规格。人点头后同一轮派 publisher 写入 git 文首和总�
 
 ## 空转自检
 
-目的变了却先改业务代码、一次性重活却新开设计目标、没说登记却要求先过看板、修 bug 却开一张新父项、人没说登记却自行开卡、完成时只说编译过了或卡上没有收尾行、把做法细节写进文首、把切篇/字段/prompt 当成目标、把抽查或审计结论写进清单状态、读到旧卡过期口径未看替代行就当规格执行、人说审计却跳过收尾去对照代码、**coordinator 没点头就派 implementer**、**点了头却没把文首/总表出版到 git**、**琐碎改动却派了 Task/子代理或开了卡**、**publisher 被禁止改文首**，都是失败。停下来按对应流程重做。
+目的变了却先改业务代码、一次性重活却新开设计目标、没说登记却要求先过看板、修 bug 却开一张新父项、人没说登记却自行开卡、完成时只说编译过了或卡上没有收尾行、把做法细节写进文首、把切篇/字段/prompt 当成目标、把抽查或审计结论写进清单状态、读到旧卡过期口径未看替代行就当规格执行、人说审计却跳过收尾去对照代码、**STATUS 探路却派了 implementer**、**点了头却没把文首/总表出版到 git**、**派工人却不把角色纪律写进任务**、**把产品 Goal 或共享上下文当目标册源头**、**琐碎改动却派了 Task/子代理或开了卡**、**publisher 被禁止改文首**，都是失败。停下来按对应流程重做。

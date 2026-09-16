@@ -45,10 +45,36 @@ test('hosted method scripts and core docs exist in method/', () => {
     'utf8'
   );
   assert.match(firstMessage, /myrules-implementer/);
-  assert.match(firstMessage, /禁止用无名/);
+  assert.match(firstMessage, /任务正文/);
+  assert.match(firstMessage, /角色纪律/);
+  assert.doesNotMatch(firstMessage, /禁止用无名/);
   const charter = fs.readFileSync(path.join(REPO_ROOT, 'method', 'project', 'coordinator.md'), 'utf8');
-  assert.match(charter, /禁止用无名/);
+  assert.match(charter, /任务正文/);
+  assert.match(charter, /角色纪律/);
+  assert.doesNotMatch(charter, /禁止用无名/);
   assert.match(charter, /不会走本地 subagentStart/);
+  assert.match(charter, /闸门只认/);
+  assert.match(charter, /STATUS/);
+  const session = fs.readFileSync(
+    path.join(REPO_ROOT, 'method', 'core', 'rules', 'myrules-method-session.mdc'),
+    'utf8'
+  );
+  assert.match(session, /产品/);
+  assert.match(session, /first-message/);
+  assert.doesNotMatch(session, /禁止写业务代码/);
+  assert.match(skill, /未加前缀/);
+  assert.match(skill, /项目工作法\.md/);
+  assert.match(skill, /本地主会话.*写文首|自己写文首/);
+  const runtime = fs.readFileSync(path.join(REPO_ROOT, 'method', 'project', 'runtime.md'), 'utf8');
+  assert.match(runtime, /本地主会话/);
+  assert.match(runtime, /publisher/);
+  assert.doesNotMatch(runtime, /已有\*\*已出版\*\*口号/);
+  const overlayNote = fs.readFileSync(
+    path.join(REPO_ROOT, 'method', 'core', '项目工作法.md'),
+    'utf8'
+  );
+  assert.match(overlayNote, /STATUS 探路却派了 implementer/);
+  assert.match(overlayNote, /角色纪律/);
 });
 
 test('project-method reference branches board paths and close-out by runtime', () => {
@@ -68,7 +94,10 @@ test('project-method reference branches board paths and close-out by runtime', (
   const projectPublish = flow2[1].match(/\*\*project[：:]\*\*([^\n]+)/);
   assert.ok(projectPublish, 'missing **project：** in 流程二');
   assert.match(projectPublish[1], /myrules-publisher/);
+  assert.match(projectPublish[1], /本地主会话/);
   assert.doesNotMatch(projectPublish[1], /npm run board/);
+  assert.doesNotMatch(ref, /coordinator 和本地主会话不要自己改文首/);
+  assert.match(ref, /未加前缀/);
 });
 
 test('bundled board-server chrome matches wiki fonts, sizes, and frame', () => {
