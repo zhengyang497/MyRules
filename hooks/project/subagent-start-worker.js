@@ -2,28 +2,17 @@
 //
 // Cursor subagentStart input is roughly:
 //   { subagent_id, subagent_type, task, parent_conversation_id, tool_call_id, subagent_model, is_parallel_worker }
-// subagent_type is usually generalPurpose / explore / shell; named MyRules roles use myrules-<role>.
-// Output must include permission: allow plus optional user_message / additional_context.
-// Returning JSON that does not match the schema can block every subagent.
+// Official output fields are only:
+//   permission: allow | deny
+//   user_message: shown to the user on deny, not worker context
+// There is no additional_context. Returning unofficial fields can fail schema
+// validation and block every subagent.
+// Role discipline lives in .cursor/agents/myrules-*.md and rules/project/*,
+// not in this hook.
 
 const ROLE_IDS = ['publisher', 'implementer', 'researcher', 'reviewer', 'planner'];
 const SEAT_FIELDS = ['subagent_type', 'agent_type', 'name', 'agent_name', 'agent'];
 const GENERIC_TYPES = new Set(['generalpurpose', 'explore', 'shell', 'task']);
-
-const MESSAGES = {
-  publisher:
-    '你是 publisher。仅在人已点头后改文首和总表；不许发明句子；不要改业务代码。忽略 session 开场注入的目的句，不要据此改目标。',
-  implementer:
-    '你是 implementer。禁止改 docs/能力、总表、ledger 里 PURPOSE/GOALS。范围只来自当前派工卡。忽略 session 开场注入的目的句，不要据此改目标。',
-  researcher:
-    '你是 researcher。只读。不改目标。不把「我们应该做成什么」当结论。忽略 session 开场注入的目的句。',
-  reviewer:
-    '你是 reviewer。只读。不管目标该不该改。忽略 session 开场注入的目的句。',
-  planner:
-    '你是 planner。不要改目标册。忽略 session 开场注入的目的句。改一行、明显 bug 应让主会话直接做，不要扩成大计划。',
-  unknown:
-    '按角色文件做。忽略 session 开场注入的目的句；不要据此改目标。若你是 publisher 且人已点头，可以改文首。',
-};
 
 function normalizeSeat(value) {
   if (typeof value !== 'string') return '';
@@ -87,31 +76,25 @@ function detectRole(input = {}) {
 module.exports.meta = {
   event: 'subagentStart',
   description:
-    'When a MyRules worker subagent starts, inject role-specific discipline: ' +
-    'implementer/researcher/reviewer stay off the goal books; publisher may edit ' +
-    'published goals after a nod.',
+    'Allow MyRules worker subagents to start. Role discipline is in agent files ' +
+    'and project role rules, not hook output.',
 };
 
 module.exports.detectRole = detectRole;
 
-module.exports.handle = function handle(input = {}) {
-  const role = detectRole(input);
-  return {
-    permission: 'allow',
-    additional_context: MESSAGES[role] || MESSAGES.unknown,
-  };
+module.exports.handle = function handle() {
+  return { permission: 'allow' };
 };
 
 if (require.main === module) {
   let raw = '';
   process.stdin.on('data', (c) => (raw += c));
   process.stdin.on('end', () => {
-    let input = {};
     try {
-      input = JSON.parse((raw || '{}').replace(/^\uFEFF/, ''));
+      JSON.parse((raw || '{}').replace(/^\uFEFF/, ''));
     } catch {
-      input = {};
+      /* ignore malformed stdin; still allow */
     }
-    console.log(JSON.stringify(module.exports.handle(input)));
+    console.log(JSON.stringify(module.exports.handle()));
   });
 }

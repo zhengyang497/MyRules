@@ -11,83 +11,53 @@ test('meta declares the subagentStart event', () => {
   assert.ok(hook.meta.description.length > 0);
 });
 
-test('publisher is not told to never edit goals', () => {
+test('detectRole uses named seat fields, not charter text', () => {
+  assert.strictEqual(hook.detectRole({ subagent_type: 'myrules-publisher' }), 'publisher');
+  assert.strictEqual(hook.detectRole({ subagent_type: 'myrules-implementer' }), 'implementer');
+  assert.strictEqual(hook.detectRole({ agent_type: 'myrules-implementer' }), 'implementer');
+  assert.strictEqual(hook.detectRole({ name: 'myrules-researcher' }), 'researcher');
+  assert.strictEqual(hook.detectRole({ agent: 'myrules-reviewer' }), 'reviewer');
+  assert.strictEqual(hook.detectRole({ subagent_type: 'myrules-planner' }), 'planner');
+});
+
+test('detectRole does not treat generalPurpose charter lists as publisher', () => {
+  assert.notStrictEqual(
+    hook.detectRole({
+      subagent_type: 'generalPurpose',
+      task: '按章程派 myrules-implementer 改代码，不要用 myrules-publisher',
+    }),
+    'publisher'
+  );
+  assert.strictEqual(
+    hook.detectRole({
+      subagent_type: 'generalPurpose',
+      task: '用 myrules-implementer 改代码',
+    }),
+    'implementer'
+  );
+  assert.strictEqual(
+    hook.detectRole({
+      subagent_type: 'generalPurpose',
+      task: '读章程：researcher、implementer、reviewer、publisher 都有',
+    }),
+    'unknown'
+  );
+});
+
+test('handle allows the subagent and does not emit unofficial fields', () => {
   const out = hook.handle({ subagent_type: 'myrules-publisher' });
-  assert.match(out.additional_context, /publisher/);
-  assert.doesNotMatch(out.additional_context, /禁止改目标册/);
-  assert.match(out.additional_context, /点头/);
+  assert.deepStrictEqual(out, { permission: 'allow' });
+  assert.strictEqual(out.additional_context, undefined);
+  assert.strictEqual(out.user_message, undefined);
 });
 
-test('implementer is told not to edit goals and to ignore session purpose', () => {
-  const out = hook.handle({ agent_type: 'myrules-implementer' });
-  assert.match(out.additional_context, /implementer/);
-  assert.match(out.additional_context, /禁止改/);
-  assert.match(out.additional_context, /忽略 session 开场/);
-});
-
-test('named subagent_type myrules-implementer is implementer, not publisher', () => {
-  const out = hook.handle({ subagent_type: 'myrules-implementer' });
-  assert.match(out.additional_context, /implementer/);
-  assert.match(out.additional_context, /禁止改/);
-  assert.doesNotMatch(out.additional_context, /改文首/);
-});
-
-test('researcher and reviewer stay read-only', () => {
-  assert.match(hook.handle({ name: 'myrules-researcher' }).additional_context, /只读/);
-  assert.match(hook.handle({ agent: 'myrules-reviewer' }).additional_context, /只读/);
-  assert.doesNotMatch(hook.handle({ name: 'myrules-researcher' }).additional_context, /禁止改目标册/);
-});
-
-test('generalPurpose task naming one worker is not misread as publisher', () => {
-  const mixed = hook.handle({
-    subagent_type: 'generalPurpose',
-    task: '按章程派 myrules-implementer 改代码，不要用 myrules-publisher',
-  });
-  assert.doesNotMatch(mixed.additional_context, /仅在人已点头后改文首/);
-  assert.match(mixed.additional_context, /implementer|按角色文件做/);
-
-  const single = hook.handle({
-    subagent_type: 'generalPurpose',
-    task: '用 myrules-implementer 改代码',
-  });
-  assert.match(single.additional_context, /implementer/);
-  assert.match(single.additional_context, /禁止改/);
-});
-
-test('charter listing many roles in task is unknown, not publisher', () => {
-  const out = hook.handle({
-    subagent_type: 'generalPurpose',
-    task: '读章程：researcher、implementer、reviewer、publisher 都有',
-  });
-  assert.match(out.additional_context, /按角色文件做/);
-  assert.doesNotMatch(out.additional_context, /仅在人已点头后改文首/);
-});
-
-test('planner hook tells it not to expand one-line fixes', () => {
-  const out = hook.handle({ subagent_type: 'myrules-planner' });
-  assert.match(out.additional_context, /改一行|明显 bug/);
-  assert.match(out.additional_context, /主会话/);
-});
-
-test('unknown role does not use the old one-size-fits-all goal ban', () => {
-  const out = hook.handle({});
-  assert.match(out.additional_context, /publisher/);
-  assert.doesNotMatch(out.additional_context, /禁止改目标册/);
-});
-
-test('stdin JSON selects the matching role message', () => {
+test('stdin JSON is only permission allow', () => {
   const output = execFileSync('node', [HOOK_PATH], {
     input: JSON.stringify({ subagent_type: 'myrules-publisher' }),
     encoding: 'utf8',
   });
   const parsed = JSON.parse(output);
   assert.strictEqual(parsed.permission, 'allow');
-  assert.match(parsed.additional_context, /publisher/);
-  assert.doesNotMatch(parsed.additional_context, /禁止改目标册/);
-});
-
-test('handle always allows the subagent while injecting context', () => {
-  const out = hook.handle({ subagent_type: 'myrules-publisher' });
-  assert.strictEqual(out.permission, 'allow');
-  assert.match(out.additional_context, /点头/);
+  assert.strictEqual(parsed.additional_context, undefined);
+  assert.deepStrictEqual(Object.keys(parsed).sort(), ['permission']);
 });

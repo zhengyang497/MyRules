@@ -36,6 +36,9 @@ test('hosted method scripts and core docs exist in method/', () => {
   assert.match(small, /当前主会话直接改/);
   assert.match(skill, /琐碎改动却派了 Task\/子代理或开了卡/);
   assert.match(skill, /publisher 被禁止改文首/);
+  const methodDoc = fs.readFileSync(path.join(REPO_ROOT, 'method', 'core', '项目工作法.md'), 'utf8');
+  assert.match(methodDoc, /琐碎改动却派了 Task\/子代理或开了卡/);
+  assert.match(methodDoc, /publisher 被禁止改文首/);
   const firstMessage = fs.readFileSync(
     path.join(REPO_ROOT, 'method', 'project', 'FIRST-MESSAGE.md'),
     'utf8'
@@ -45,6 +48,20 @@ test('hosted method scripts and core docs exist in method/', () => {
   const charter = fs.readFileSync(path.join(REPO_ROOT, 'method', 'project', 'coordinator.md'), 'utf8');
   assert.match(charter, /禁止用无名/);
   assert.match(charter, /不会走本地 subagentStart/);
+});
+
+test('project-method reference branches board paths and close-out by runtime', () => {
+  const ref = fs.readFileSync(
+    path.join(REPO_ROOT, 'method', 'skills', 'project-method', 'reference.md'),
+    'utf8'
+  );
+  assert.match(ref, /### project[\s\S]*ledger\/board/);
+  const projectClose = ref.match(/### project 收工\r?\n([\s\S]*?)(?=\r?\n## |\r?\n### |\s*$)/);
+  assert.ok(projectClose, 'missing ### project 收工');
+  assert.doesNotMatch(projectClose[1], /npm run board -- patch/);
+  const agentClose = ref.match(/### agent 收工\r?\n([\s\S]*?)(?=\r?\n## |\r?\n### )/);
+  assert.ok(agentClose, 'missing ### agent 收工');
+  assert.match(agentClose[1], /npm run board -- patch/);
 });
 
 test('bundled board-server chrome matches wiki fonts, sizes, and frame', () => {
