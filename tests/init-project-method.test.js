@@ -38,7 +38,8 @@ test('hosted method scripts and core docs exist in method/', () => {
   assert.match(skill, /publisher 被禁止改文首/);
   const methodDoc = fs.readFileSync(path.join(REPO_ROOT, 'method', 'core', '项目工作法.md'), 'utf8');
   assert.match(methodDoc, /琐碎改动却派了 Task\/子代理或开了卡/);
-  assert.match(methodDoc, /publisher 被禁止改文首/);
+  assert.doesNotMatch(methodDoc, /琐碎改动却派了 Task[^\n]*仅 Project/);
+  assert.match(methodDoc, /publisher 被禁止改文首[^\n]*仅 Project/);
   const firstMessage = fs.readFileSync(
     path.join(REPO_ROOT, 'method', 'project', 'FIRST-MESSAGE.md'),
     'utf8'
@@ -62,6 +63,12 @@ test('project-method reference branches board paths and close-out by runtime', (
   const agentClose = ref.match(/### agent 收工\r?\n([\s\S]*?)(?=\r?\n## |\r?\n### )/);
   assert.ok(agentClose, 'missing ### agent 收工');
   assert.match(agentClose[1], /npm run board -- patch/);
+  const flow2 = ref.match(/## 流程二：借鉴现成系统\r?\n([\s\S]*?)(?=\r?\n## )/);
+  assert.ok(flow2, 'missing ## 流程二');
+  const projectPublish = flow2[1].match(/\*\*project[：:]\*\*([^\n]+)/);
+  assert.ok(projectPublish, 'missing **project：** in 流程二');
+  assert.match(projectPublish[1], /myrules-publisher/);
+  assert.doesNotMatch(projectPublish[1], /npm run board/);
 });
 
 test('bundled board-server chrome matches wiki fonts, sizes, and frame', () => {
