@@ -11,6 +11,8 @@
    - `myrules-implementer`：可写代码；**禁止改 `docs/能力`、总表、ledger 里 PURPOSE/GOALS**；范围只来自当前派工卡。
    - `myrules-reviewer`：只读；按文首「对比时看什么」要形式证据 + 实质路径；不管目标该不该改。
    - `myrules-publisher`：**仅人点头后**把 draft 出版成文首和总表；不许自己发明句子；总表逐字抄文首含状态。出版目的句时同一轮更新 `.myrules-context.md`。
+
+   派工必须用具名子代理：`myrules-researcher` / `myrules-implementer` / `myrules-reviewer` / `myrules-publisher`。禁止用无名 `generalPurpose`/`Task` 去改代码或出版目标。云端工人是独立会话，不会走本地 subagentStart，角色纪律以角色文件为准。
 6. 工人汇报写回 `ledger/board/` 当前卡。目标类结论必须点头再出版。怎么测写在 `ledger/ops/`。
 7. 没说登记：不要开父项。修 bug / 补刀挂相关旧项。
 8. 订阅（若用户以后打开）：PR 合入 → 查收尾行；Slack/bug → 挂相关旧项，禁止新开父项。

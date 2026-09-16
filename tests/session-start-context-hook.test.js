@@ -27,8 +27,26 @@ test('handle skips injecting context for subagent sessions', () => {
   const payload = { workspace_roots: [project] };
   assert.deepStrictEqual(hook.handle({ ...payload, is_subagent: true }), {});
   assert.deepStrictEqual(hook.handle({ ...payload, parent_session_id: 'parent-1' }), {});
-  assert.deepStrictEqual(hook.handle({ ...payload, agent_id: 'myrules-implementer' }), {});
+  assert.deepStrictEqual(hook.handle({ ...payload, parent_conversation_id: 'x' }), {});
   assert.deepStrictEqual(hook.handle({ ...payload, composer_mode: 'subagent' }), {});
+});
+
+test('handle still injects purpose for main and cloud sessions', () => {
+  const project = tmpProject();
+  fs.writeFileSync(path.join(project, '.myrules-context.md'), 'published purpose');
+  const payload = { workspace_roots: [project] };
+  assert.strictEqual(
+    hook.handle({ ...payload, composer_mode: 'agent' }).additional_context,
+    'published purpose'
+  );
+  assert.strictEqual(
+    hook.handle({ ...payload, is_background_agent: true }).additional_context,
+    'published purpose'
+  );
+  assert.strictEqual(
+    hook.handle({ ...payload, agent_id: 'bc-whatever' }).additional_context,
+    'published purpose'
+  );
 });
 
 test('handle returns the file content as additional_context when it exists', () => {

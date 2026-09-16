@@ -34,6 +34,17 @@ test('hosted method scripts and core docs exist in method/', () => {
   const small = fs.readFileSync(path.join(REPO_ROOT, 'method', 'core', 'rules', 'myrules-method-small.mdc'), 'utf8');
   assert.match(small, /alwaysApply:\s*true/);
   assert.match(small, /当前主会话直接改/);
+  assert.match(skill, /琐碎改动却派了 Task\/子代理或开了卡/);
+  assert.match(skill, /publisher 被禁止改文首/);
+  const firstMessage = fs.readFileSync(
+    path.join(REPO_ROOT, 'method', 'project', 'FIRST-MESSAGE.md'),
+    'utf8'
+  );
+  assert.match(firstMessage, /myrules-implementer/);
+  assert.match(firstMessage, /禁止用无名/);
+  const charter = fs.readFileSync(path.join(REPO_ROOT, 'method', 'project', 'coordinator.md'), 'utf8');
+  assert.match(charter, /禁止用无名/);
+  assert.match(charter, /不会走本地 subagentStart/);
 });
 
 test('bundled board-server chrome matches wiki fonts, sizes, and frame', () => {
