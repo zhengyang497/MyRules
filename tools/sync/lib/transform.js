@@ -2,8 +2,8 @@
 
 const RULE_FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/;
 
-function parseAgentsList(yamlBlock) {
-  const match = yamlBlock.match(/^agents:\s*(.+)$/m);
+function parseYamlListField(yamlBlock, key) {
+  const match = yamlBlock.match(new RegExp(`^${key}:\\s*(.+)$`, 'm'));
   if (!match) return null;
   const raw = match[1].trim();
   if (raw === 'all' || raw === '"all"' || raw === "'all'") return 'all';
@@ -18,10 +18,11 @@ function parseAgentsList(yamlBlock) {
 function parseRuleFrontmatter(content) {
   const match = content.match(RULE_FRONTMATTER_RE);
   if (!match) {
-    return { agents: null, body: content };
+    return { agents: null, runtimes: null, body: content };
   }
-  const agents = parseAgentsList(match[1]);
-  return { agents, body: match[2].trimStart() };
+  const agents = parseYamlListField(match[1], 'agents');
+  const runtimes = parseYamlListField(match[1], 'runtimes');
+  return { agents, runtimes, body: match[2].trimStart() };
 }
 
 function stripRuleFrontmatter(content) {
@@ -32,6 +33,11 @@ function roleMatchesAgents(agents, roleId) {
   if (agents === null) return false;
   if (agents === 'all') return true;
   return Array.isArray(agents) && agents.includes(roleId);
+}
+
+function runtimeMatches(runtimes, runtime) {
+  if (runtimes === null || runtimes === 'all') return true;
+  return Array.isArray(runtimes) && runtimes.includes(runtime);
 }
 
 function transformForCursor(body, topic) {
@@ -116,6 +122,7 @@ module.exports = {
   parseRuleFrontmatter,
   stripRuleFrontmatter,
   roleMatchesAgents,
+  runtimeMatches,
   transformForAgent,
   composeAgentBody,
 };

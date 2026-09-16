@@ -63,7 +63,9 @@ function deployRules(cacheDir, projectRoot, opts = {}) {
     for (const f of listMdFiles(srcDir)) {
       const topic = path.basename(f, '.md');
       const raw = fs.readFileSync(path.join(srcDir, f), 'utf8');
-      const body = transform.stripRuleFrontmatter(raw);
+      const parsed = transform.parseRuleFrontmatter(raw);
+      if (parsed.runtimes !== null) continue;
+      const body = parsed.body;
 
       const cursorName = category === 'user' ? `${userPrefix}${topic}.mdc` : `${prefix}${topic}.mdc`;
       const cursorTarget = path.join(cursorDir, cursorName);

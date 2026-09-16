@@ -9,15 +9,17 @@ MyRules repo clone / shallow clone otherwise.
 
 | User intent | Command |
 |-------------|---------|
-| Import / install MyRules skill from GitHub (**bootstrap** step 1) | `node "<myrules-clone>/tools/sync/install-skill.js" --project "<workspace>"` |
-| Lay down project-method skeleton once (**step 3**) | `node "$HOME/.myrules/tools/sync/init-project-method.js" --project "<workspace>"` — or from a clone when `~/.myrules/` does not exist yet. Already initialized: refuse unless the user asked to `--force` |
-| Sync into this project (rules + agents + hooks; existing skills kept, not re-fetched) | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>"` — or `node "<myrules-clone>/tools/sync/sync.js" --project "<workspace>"` when `~/.myrules/` does not exist yet |
+| Import / install MyRules skill from GitHub (**bootstrap**) | `node "<myrules-clone>/tools/sync/install-skill.js" --project "<workspace>"` |
+| 布置普通仓库 / 按 Agent 工作法初始化 | `node "$HOME/.myrules/tools/sync/init-project-method.js" --runtime agent --project "<workspace>"` — ends with sync. Same runtime already arranged: refuse unless `--force` (hosted method pack only; never overwrite instance files) |
+| 布置 Project 仓库 / 按 Project 工作法初始化 | `node "$HOME/.myrules/tools/sync/init-project-method.js" --runtime project --project "<workspace>"` — ends with sync |
+| 布置仓库 / 布置项目工作法 / 按方法论初始化 | **Ask** 普通 Agent or Project. Do not default. Then run the matching `--runtime` command |
+| Sync into this project (rules + agents + hooks + method pack) | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>"` — fails if there is no runtime marker |
 | Refresh external skills from GitHub (then keep local copies if fetch fails) | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --update-skills` |
-| Sync every registered project on this machine | `node "$HOME/.myrules/tools/sync/sync.js" --all` |
+| Sync every registered project on this machine | `node "$HOME/.myrules/tools/sync/sync.js" --all` — each project uses its own runtime |
 | Take over an old project's rules | 1) dry-run: `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --dry-run --prune-legacy-rules`, review the listed files, then 2) `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --prune-legacy-rules` |
 | Force-overwrite locally-edited myrules-* rules or hook scripts | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --force` |
 | See which **rules** were edited locally vs the cache | `node "$HOME/.myrules/tools/sync/export.js" --project "<workspace>"` |
-| Publish edits made in `~/.myrules/` (rules, hooks, manifest) | `node "$HOME/.myrules/tools/sync/push.js" -m "describe the change"` |
+| Publish edits made in `~/.myrules/` (rules, hooks, method pack, manifest) | `node "$HOME/.myrules/tools/sync/push.js" -m "describe the change"` |
 | Check sync status (includes hook counts) | `node "$HOME/.myrules/tools/sync/status.js" --project "<workspace>"` |
 
 `status.js` prints JSON including `projectHooksDeployed`, `userHooksDeployed`,
@@ -25,3 +27,5 @@ MyRules repo clone / shallow clone otherwise.
 per-project sync state.
 
 `init.js` is a deprecated alias for `sync.js` — use `sync.js` only.
+Copy-once project-method templates are **gone**. Method files are hosted and
+updated by sync.

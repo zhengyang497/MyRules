@@ -4,7 +4,7 @@ const legacy = require('./legacy');
 const projectSkill = require('./project-skill');
 const state = require('./state');
 
-function prepareProject(projectRoot, cacheDir, manifest) {
+function prepareProject(projectRoot, cacheDir, manifest, opts = {}) {
   if (!projectSkill.isProjectSkillInstalled(projectRoot, manifest)) {
     throw new Error(
       'MyRules skill is not installed in this project. Import it from GitHub first ' +
@@ -13,7 +13,7 @@ function prepareProject(projectRoot, cacheDir, manifest) {
   }
 
   if (manifest.deploy.gitignoreDeployArtifacts) {
-    gitignoreLib.ensureGitignore(projectRoot, manifest);
+    gitignoreLib.ensureGitignore(projectRoot, manifest, opts.runtime || 'agent');
   }
 
   const legacyFiles = legacy.scanLegacy(projectRoot, manifest.managedPrefix, manifest);

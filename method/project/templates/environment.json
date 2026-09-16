@@ -1,0 +1,3 @@
+{
+  "install": "if [ ! -d \"$HOME/.myrules\" ]; then git clone --depth 1 https://github.com/zhengyang497/MyRules.git \"$HOME/.myrules\"; fi\nnode \"$HOME/.myrules/tools/sync/sync.js\" --project \"$PWD\"\n"
+}

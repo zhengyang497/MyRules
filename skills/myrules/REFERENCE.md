@@ -2,24 +2,39 @@
 
 Vocabulary (used throughout this skill):
 
-- **cache** — `~/.myrules/`; sole source of truth for rules, hooks, and
-  `skills-manifest.js`
-- **artifacts** — generated `myrules-*` rules, hook scripts, and `hooks.json`
-  entries in projects and `~/.cursor/`; never edit by hand
+- **cache** — `~/.myrules/`; sole source of truth for rules, hooks, method
+  pack, and `skills-manifest.js`
+- **artifacts** — generated `myrules-*` rules, hook scripts, `hooks.json`
+  entries, and hosted method files in projects and `~/.cursor/`; never edit by hand
 - **bootstrap** — install this skill into the project before sync phrases work
+- **runtime** — `agent` or `project`, stored in project `.myrules-runtime.json`
 
 ## Content map
 
 | Kind | Edit in cache | Deployed artifacts | Notes |
 |------|---------------|-------------------|-------|
-| Rules | `rules/user/*.md`, `rules/project/*.md` | `.cursor/rules/myrules-*.mdc`, `.claude/rules/myrules-*.md` | One topic per file; `project/` may use `agents:` frontmatter |
-| Sub-agents | same sources (filtered by `agents:`) | `.cursor/agents/myrules-*.md`, `.claude/agents/myrules-*.md` | **One-way deploy** — edit cache sources, not agent files; `export` does not reverse-merge agents |
-| Hooks | `hooks/user/*.js`, `hooks/project/*.js` | Cursor: `hooks.json` + `myrules-*.js`; Claude: `myrules-hook-*.md` convention docs only | See seed hooks `session-log`, `session-start-context` |
+| Rules | `rules/user/*.md`, `rules/project/*.md` | `.cursor/rules/myrules-*.mdc`, `.claude/rules/myrules-*.md` | One topic per file; `project/` may use `agents:` / `runtimes:` frontmatter |
+| Sub-agents | same sources (filtered by `agents:` and runtime) | `.cursor/agents/myrules-*.md`, `.claude/agents/myrules-*.md` | **One-way deploy** — edit cache sources, not agent files; `export` does not reverse-merge agents. agent runtime: planner/implementer/reviewer. project runtime: researcher/implementer/reviewer/publisher |
+| Hooks | `hooks/user/*.js`, `hooks/project/*.js` | Cursor: `hooks.json` + `myrules-*.js`; Claude: `myrules-hook-*.md` convention docs only | See seed hooks `session-log`, `session-start-context`, `subagent-start-worker` |
 | External skills | `skills-manifest.js` | `~/.cursor/skills/<name>/`, `~/.claude/skills/<name>/` | Never list `myrules` here; optional `path` extracts a monorepo subfolder |
 | Bootstrap skill | `skills/myrules/*` | Project `.cursor/skills/myrules/` (and `.claude/skills/myrules/`) | Via `install-skill.js` |
-| Project-method skeleton | `templates/project-method/` | Copied into the project by `init-project-method.js` | **Once.** Project-owned after copy. `sync.js` never updates these files. Generic hard constraints live in `rules/user/behavior.md`, not in this template |
+| Method pack | `method/core/`, `method/agent/`, `method/project/` | `docs/方法/myrules-*.md`, `.cursor/rules/myrules-method-*.mdc`, `.cursor/skills/project-method/`, `scripts/myrules-board*.mjs` | **Hosted.** Updated every sync. Instance files (goals, ledger notes, `.myrules-context.md`) are never overwritten. Copy-once templates are abolished |
 | Rule authoring (meta) | `rules/meta/*.md` | *(not deployed)* | Read in cache before editing `user/` / `project/` |
-| Project context | — | `<project>/.myrules-context.md` | User writes per project; not synced |
+| Project context | — | `<project>/.myrules-context.md` | Instance; published purpose. Not overwritten by sync |
+| Runtime marker | — | `<project>/.myrules-runtime.json` | Commit this file. `agent` or `project`. Cloud clones read it |
+
+**Adding a rule:** read `rules/meta/authoring.md` in the cache first, then create
+`rules/user/topic.md` or `rules/project/topic.md`, push, sync.
+
+**Adding a hook:** create `hooks/user/name.js` or `hooks/project/name.js` with
+`meta` + `handle`, push, sync. Removing a hook source removes its deployed
+script and `hooks.json` entry on the next sync.
+
+**Gitignore:** personal `myrules-user-*` and non-method `myrules-*` rules stay
+ignored. Method short rules use an allowlist (`!.../myrules-method-*`) so they
+are committed. On **project** runtime, `.cursor/agents/myrules-*` are **not**
+gitignored so the coordinator can dispatch by name after clone. User hooks stay
+gitignored; cloud VMs re-sync via `.cursor/environment.json` `install`.
 
 **Adding a rule:** read `rules/meta/authoring.md` in the cache first, then create
 `rules/user/topic.md` or `rules/project/topic.md`, push, sync.
@@ -44,12 +59,12 @@ On each run (for one project or `--all`):
 3. `git pull --ff-only` in the cache
 4. Clone/update external skills listed in `skills-manifest.js`
 5. Deploy user-level hooks once per run (to `~/.cursor/hooks/`)
-6. Deploy project rules + project hooks + sub-agent bundles into the target project(s)
-7. Append the MyRules block to the project `.gitignore` (first time only)
-8. Register the project in `~/.myrules/.registry.json`
+6. Deploy project rules + project hooks + sub-agent bundles + **method pack** into the target project(s)
+7. Append/refresh the MyRules block in the project `.gitignore` (runtime-specific)
+8. Register the project in `~/.myrules/.registry.json` **with its runtime**
 
-There is no separate `init` step — first sync and later updates use the same
-command.
+There is no separate copy-once method step — arrange writes instance files and
+always syncs; later method edits are cache → push → sync.
 
 ## Platform notes
 
@@ -57,11 +72,12 @@ command.
   with `alwaysApply: true` (not Cursor Settings UI).
 - **Claude user rules:** `~/.claude/rules/myrules-user-*.md`; project rules in
   `.claude/rules/myrules-*.md`.
-- **Sub-agents:** three role bundles (`planner`, `implementer`, `reviewer`) from
-  `rules/user/` (all) + `rules/project/` (filtered by `agents:` frontmatter).
-  Agent file bodies load only when a sub-agent is delegated — they do not bloat
-  the main session context. On Claude, delegated sub-agents may also load the
-  same `.claude/rules/` set as the parent session (v1 accepts this duplication).
+- **Sub-agents:** role bundles depend on `.myrules-runtime.json`. `agent` gets
+  `planner`, `implementer`, `reviewer`. `project` gets `researcher`,
+  `implementer`, `reviewer`, `publisher`. Sources are `rules/user/` (all) +
+  `rules/project/` (filtered by `agents:` and optional `runtimes:`). Agent file
+  bodies load only when a sub-agent is delegated. Coordinator alwaysApply rules
+  are not deployed into OpenCode project instructions.
 - **Hooks:** Cursor runs deployed `.js` scripts via `hooks.json`. Claude receives
   generated markdown convention files only — follow them manually; no automatic
   trigger.
@@ -71,6 +87,8 @@ command.
 - `CLAUDE.md`, `.claude/CLAUDE.md`, `CLAUDE.local.md`
 - `AGENTS.md`
 - Claude auto memory under `~/.claude/projects/**/memory/**`
+- `.myrules-context.md`, `README.md`, `docs/能力/**`, `docs/设计目标检查清单.md` body, `docs/看板/items/**`, `ledger/board/**`, `ledger/ops/**`, draft/STATUS contents once written
+- Unprefixed `docs/方法/项目工作法.md` (legacy copy-once file)
 - Any `.cursor/rules/*` or `.claude/rules/*` file that does **not** start with
   `myrules-`, unless the user has explicitly confirmed `--prune-legacy-rules`
   after reviewing a `--dry-run` list
@@ -101,6 +119,7 @@ command.
 | Condition | Behavior |
 |-----------|----------|
 | `~/.myrules/` missing | `sync.js` clones from `manifest.js` `repo` on first run |
+| No runtime marker | Abort; tell user to 布置普通仓库 or 布置 Project 仓库 |
 | Cache repo has uncommitted changes | Abort before `git pull`; instruct `push.js` or manual resolve |
 | `git pull` not fast-forward | Abort; report conflict, do not auto-merge |
 | Deployed **artifact** locally modified (drift) | Skip that file, report it; suggest `export` or `--force` |

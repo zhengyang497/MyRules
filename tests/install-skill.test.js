@@ -7,7 +7,7 @@ const { execFileSync } = require('node:child_process');
 const installSkillCli = require('../tools/sync/install-skill');
 const syncCli = require('../tools/sync/sync');
 const initCli = require('../tools/sync/init');
-const { seedCacheContent } = require('./helpers/cache-seed');
+const { seedCacheContent, writeRuntime } = require('./helpers/cache-seed');
 
 function run(cwd, args) {
   execFileSync('git', args, { cwd, stdio: 'ignore' });
@@ -52,6 +52,7 @@ test('sync.run deploys rules when skill is already installed', () => {
   const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-sync-project-'));
 
   installSkill(project);
+  writeRuntime(project, 'agent');
   syncCli.run({
     project,
     cacheDir: cache,
@@ -86,6 +87,7 @@ test('init.js remains a backward-compatible alias for sync', () => {
   const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-init-alias-'));
 
   installSkill(project);
+  writeRuntime(project, 'agent');
   initCli.run({
     project,
     cacheDir: cache,

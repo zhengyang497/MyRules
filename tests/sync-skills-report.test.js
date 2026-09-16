@@ -6,6 +6,7 @@ const os = require('node:os');
 const { execFileSync } = require('node:child_process');
 const syncCli = require('../tools/sync/sync');
 const installSkillCli = require('../tools/sync/install-skill');
+const { writeRuntime } = require('./helpers/cache-seed');
 
 function run(cwd, args) {
   execFileSync('git', args, { cwd, stdio: 'ignore' });
@@ -42,6 +43,7 @@ test('sync.run warns when skill sync fails but still deploys rules', () => {
     project,
     sourceDir: installSkillCli.getBundledRepoRoot(),
   });
+  writeRuntime(project, 'agent');
   const warnings = [];
   const originalWarn = console.warn;
   console.warn = (...args) => warnings.push(args.join(' '));
@@ -75,6 +77,7 @@ test('sync.run clones cache when cache dir is missing', () => {
     project,
     sourceDir: installSkillCli.getBundledRepoRoot(),
   });
+  writeRuntime(project, 'agent');
   const cache = path.join(os.tmpdir(), `myrules-autoclone-${Date.now()}`);
   syncCli.run({
     project,

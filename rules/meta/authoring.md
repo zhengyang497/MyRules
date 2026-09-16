@@ -55,16 +55,19 @@
 ```yaml
 ---
 agents: [implementer, reviewer]
+runtimes: [project]
 ---
 ```
 
 | `agents` | 规则频道 | 子代理包 |
 |----------|----------|----------|
 | 省略 | 仍全量加载 | 跳过并告警；补上明确列表 |
-| `all` | 全量加载 | planner、implementer、reviewer 都带 |
+| `all` | 全量加载 | 当前 runtime 的全部角色都带 |
 | `[planner]` 等 | 全量加载 | 只进列出的角色 |
 
-Frontmatter 在部署前会剥掉。角色固定为 planner、implementer、reviewer。
+可选 `runtimes: [agent]` / `[project]`：只进入该运行时的角色包；省略则两种运行时都进。
+
+Frontmatter 在部署前会剥掉。角色按 runtime 过滤：agent 为 planner、implementer、reviewer；project 为 researcher、implementer、reviewer、publisher。`agents: all` 表示当前 runtime 的全部角色。Planner 不出现在 project 运行时。
 
 ## 改完怎么走
 

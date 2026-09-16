@@ -8,88 +8,76 @@ Content lives in `~/.myrules/` (a clone of this repo). `sync.js` deploys
 generated artifacts into each project and into `~/.cursor/` / `~/.claude/` —
 those outputs are not the source of truth.
 
-Each sync writes two channels from the same cache sources:
+Each sync writes channels from the same cache sources:
 
-- **Rules** — all `rules/user/` + `rules/project/` → `.cursor/rules/` and
-  `.claude/rules/` (always loaded in the main session).
-- **Sub-agents** — all `rules/user/` + `rules/project/` filtered by `agents:`
-  frontmatter → three role bundles in `.cursor/agents/` and `.claude/agents/`
-  (`planner`, `implementer`, `reviewer`). Agent bodies load only when delegated.
+- **Rules** — `rules/user/` + `rules/project/` → `.cursor/rules/` and
+  `.claude/rules/` (always loaded in the main session). Files with `runtimes:`
+  frontmatter stay in role bundles only.
+- **Sub-agents** — filtered by `agents:` and `.myrules-runtime.json`.
+  `agent`: planner / implementer / reviewer. `project`: researcher /
+  implementer / reviewer / publisher.
+- **Method pack** — `method/` → `docs/方法/myrules-*.md`, method short rules,
+  `project-method` skill, hosted board scripts. Updated every sync.
 
 ## What gets synced
 
-MyRules manages **rules**, **hooks**, and **external skill subscriptions** in
-the cache (`~/.myrules/`), then deploys generated files into each project and
-into `~/.cursor/` / `~/.claude/`.
+MyRules manages **rules**, **hooks**, **method pack**, and **external skill
+subscriptions** in the cache (`~/.myrules/`), then deploys generated files into
+each project and into `~/.cursor/` / `~/.claude/`.
 
 Full content map (sources, deploy targets, and notes):
 [`skills/myrules/REFERENCE.md`](skills/myrules/REFERENCE.md).
 
-**Separate from the sync bundle:**
+**Separate from the hosted pack:**
 
 - **`skills/myrules/`** — bootstrap skill copied into each project by
   `install-skill.js` (not listed in `skills-manifest.js`).
-- **`templates/project-method/`** — project-method skeleton copied **once** by
-  `init-project-method.js`. After copy, the project owns those files; `sync.js`
-  does not update them. Generic hard constraints stay in `rules/user/behavior.md`.
-- **`<project>/.myrules-context.md`** — optional per-project file for the
-  `session-start-context` hook; you write it in each project yourself.
+- **`<project>/.myrules-runtime.json`** — `agent` or `project`. Commit it.
+- **`<project>/.myrules-context.md`**, `docs/能力/**`, board/ledger instance
+  files — the project's own books. Sync never overwrites them.
+
+Copy-once `templates/project-method/` is abolished. Method files live in
+`method/` and are deployed by sync.
 
 ## First use in a project
 
-MyRules uses **two steps** to get rules into a project, then an optional
-**third step** to lay down the project-method skeleton.
-
-### Step 1 — Import MyRules skill (natural language)
+### Step 1 — Import MyRules skill
 
 Ask the Agent:
 
 > **「从 GitHub 安装 MyRules skill」**  
 > **「导入 MyRules，仓库是 zhengyang497/MyRules」**
 
-Do **not** start with「sync my rules」— without the skill, Agent does not know
-that command.
-
-The Agent should shallow-clone this repo and run:
-
 ```sh
 node "<clone>/tools/sync/install-skill.js" --project "<workspace>"
 ```
 
-This installs `.cursor/skills/myrules/` (and `.claude/skills/myrules/` when
-applicable). **Commit** those paths to git so teammates share the same Agent
-entry.
+**Commit** `.cursor/skills/myrules/` (and `.claude/skills/myrules/` when
+applicable).
 
-### Step 2 — Sync (first time and every time after)
+### Step 2 — Arrange (picks a runtime and syncs)
 
-After the skill is in the project, ask the Agent:
+> **「布置普通仓库」** — ordinary Agent, main session may write code  
+> **「布置 Project 仓库」** — Cursor Projects coordinator, default 探路
 
-> **「sync my rules」**  
-> **「同步我的规则」**
+Vague **「布置仓库」** / **「布置项目工作法」** / **「按方法论初始化」** must
+ask which runtime. Do not default to agent.
 
-The Agent runs `sync.js` (from `~/.myrules/` if it exists, otherwise from the
-same GitHub clone used in step 1). That clones `~/.myrules/` when missing,
-pulls latest, updates external skills, deploys rules and hooks, and registers
-the project. The same phrase covers the first deploy and all later updates.
+Arrange writes `.myrules-runtime.json` and empty instance shelves, then runs
+sync.
 
-If the user says **「帮我设置 MyRules」** in one sentence, the Agent should still
-do step 1 then step 2 in order.
+### Step 3 — Daily sync
 
-### Step 3 — Project-method skeleton (optional, once)
+> **「sync my rules」** / **「同步规则」**
 
-Ask the Agent:
+Fails until the repo is arranged. After that, the same phrase updates rules,
+hooks, role packs, and the hosted method pack.
 
-> **「布置仓库」**  
-> **「布置项目工作法」**  
-> **「按方法论初始化」**
-
-The Agent runs `init-project-method.js`. That copies `templates/project-method/`
-into the project (docs, board scripts, method skill and rules). It refuses if
-the skeleton is already there, unless you explicitly ask to `--force`. Existing
-`README.md` and `.myrules-context.md` are never overwritten.
+If the user says **「帮我设置 MyRules」**, bootstrap (if needed) then ask
+runtime then arrange.
 
 See [`skills/myrules/SKILL.md`](skills/myrules/SKILL.md) for the agent-oriented
-workflow (bootstrap steps, completion criteria, branch routing).
+workflow.
 
 ## Commands
 

@@ -16,6 +16,7 @@ test('ensureGitignore creates .gitignore with the MyRules block when missing', (
   assert.strictEqual(wrote, true);
   const content = fs.readFileSync(path.join(project, '.gitignore'), 'utf8');
   assert.match(content, /\.cursor\/rules\/myrules-\*/);
+  assert.match(content, /!\.cursor\/rules\/myrules-method-\*/);
   assert.match(content, /\.myrules-backup\//);
   assert.match(content, /\.myrules-sync-state\.json/);
 });
@@ -54,13 +55,19 @@ test('ensureGitignore includes sub-agent artifact paths', () => {
   assert.match(content, /\.claude\/agents\/myrules-\*/);
 });
 
+test('buildBlock for project runtime commits agents and method rules', () => {
+  const block = gitignore.buildBlock(manifest, 'project');
+  assert.match(block, /!\.cursor\/rules\/myrules-method-\*/);
+  assert.doesNotMatch(block, /^\.cursor\/agents\/myrules-\*$/m);
+});
+
 test('buildBlock includes opencode rules and agents', () => {
-  const manifest = {
+  const localManifest = {
     managedPrefix: 'myrules-',
     prune: { backupDir: '.myrules-backup' },
     agents: { prefix: 'myrules-' },
   };
-  const block = gitignore.buildBlock(manifest);
+  const block = gitignore.buildBlock(localManifest);
   assert.match(block, /\.opencode\/rules\/myrules-\*/);
   assert.match(block, /\.opencode\/agents\/myrules-\*/);
 });

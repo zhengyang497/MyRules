@@ -1,0 +1,260 @@
+const { test } = require('node:test');
+const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
+const os = require('node:os');
+const { execFileSync } = require('node:child_process');
+const { seedCacheContent, REPO_ROOT, writeRuntime } = require('./helpers/cache-seed');
+const initCli = require('../tools/sync/init-project-method');
+const syncCli = require('../tools/sync/sync');
+const installSkillCli = require('../tools/sync/install-skill');
+const registry = require('../tools/sync/lib/registry');
+
+function tmp(prefix) {
+  return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+}
+
+function write(file, content) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, content);
+}
+
+function runGit(cwd, args) {
+  execFileSync('git', args, { cwd, stdio: 'ignore' });
+}
+
+function makeCacheRepo() {
+  const cache = tmp('myrules-rt-cache-');
+  seedCacheContent(cache);
+  runGit(cache, ['init']);
+  runGit(cache, ['config', 'user.email', 'test@example.com']);
+  runGit(cache, ['config', 'user.name', 'Test']);
+  runGit(cache, ['add', '-A']);
+  runGit(cache, ['commit', '-m', 'init']);
+  return cache;
+}
+
+function installSkill(project) {
+  installSkillCli.run({ project, sourceDir: installSkillCli.getBundledRepoRoot() });
+}
+
+function syncOpts(project, cache) {
+  return {
+    project,
+    cacheDir: cache,
+    skipPull: true,
+    skipSkills: true,
+    skipUserConfig: true,
+    skipEnsureCache: true,
+    claudeUserDir: path.join(project, '.fake-claude-home', 'rules'),
+    opencodeUserDir: path.join(project, '.fake-opencode-home', 'rules'),
+    homeDir: path.join(project, '.fake-home'),
+  };
+}
+
+function arrange(project, cache, runtime, extra = {}) {
+  installSkill(project);
+  return initCli.run({ ...syncOpts(project, cache), runtime, quiet: true, ...extra });
+}
+
+test('sync without runtime marker exits non-zero', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-none-');
+  installSkill(project);
+  assert.throws(() => syncCli.run(syncOpts(project, cache)), /Arrange the repo first|runtime/);
+});
+
+test('arrange agent writes runtime, empty ledger-less instance, agent rule, no coordinator ban', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-agent-');
+  arrange(project, cache, 'agent');
+
+  const marker = JSON.parse(fs.readFileSync(path.join(project, '.myrules-runtime.json'), 'utf8'));
+  assert.strictEqual(marker.runtime, 'agent');
+  assert.ok(fs.existsSync(path.join(project, 'docs', '方法', 'myrules-项目工作法.md')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-agent.mdc')));
+  assert.strictEqual(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-coordinator.mdc')), false);
+  const agentRule = fs.readFileSync(path.join(project, '.cursor', 'rules', 'myrules-method-agent.mdc'), 'utf8');
+  assert.match(agentRule, /可以写业务代码/);
+  assert.doesNotMatch(agentRule, /禁止写业务代码/);
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-planner.md')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-implementer.md')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-reviewer.md')));
+  assert.strictEqual(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-researcher.md')), false);
+  assert.strictEqual(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-publisher.md')), false);
+  const pkg = JSON.parse(fs.readFileSync(path.join(project, 'package.json'), 'utf8'));
+  assert.strictEqual(pkg.scripts.board, 'node scripts/myrules-board.mjs');
+  assert.ok(fs.existsSync(path.join(project, 'scripts', 'myrules-board.mjs')));
+});
+
+test('arrange project writes ledger, charter, coordinator rule, no agent write-code rule', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-project-');
+  arrange(project, cache, 'project');
+
+  const marker = JSON.parse(fs.readFileSync(path.join(project, '.myrules-runtime.json'), 'utf8'));
+  assert.strictEqual(marker.runtime, 'project');
+  assert.match(fs.readFileSync(path.join(project, 'ledger', 'STATUS.md'), 'utf8'), /探路/);
+  assert.ok(fs.existsSync(path.join(project, 'docs', '方法', 'myrules-coordinator.md')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-coordinator.mdc')));
+  assert.strictEqual(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-agent.mdc')), false);
+  const coord = fs.readFileSync(path.join(project, '.cursor', 'rules', 'myrules-method-coordinator.mdc'), 'utf8');
+  assert.match(coord, /禁止写业务代码/);
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-researcher.md')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-publisher.md')));
+  assert.strictEqual(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-planner.md')), false);
+  const env = JSON.parse(fs.readFileSync(path.join(project, '.cursor', 'environment.json'), 'utf8'));
+  assert.match(env.install, /sync\.js.*--project/);
+  assert.ok(fs.existsSync(path.join(project, 'docs', '方法', 'myrules-first-message.md')));
+  const gitignore = fs.readFileSync(path.join(project, '.gitignore'), 'utf8');
+  assert.doesNotMatch(gitignore, /^\.cursor\/agents\/myrules-\*$/m);
+  assert.match(gitignore, /!\.cursor\/rules\/myrules-method-\*/);
+});
+
+test('arrange does not overwrite existing context, design goals, or board cards', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-keep-');
+  write(path.join(project, '.myrules-context.md'), '当前目的：已有目的\n');
+  write(path.join(project, 'docs', '能力', 'Foo', 'Foo设计目标.md'), '# keep goal\n');
+  write(path.join(project, 'docs', '看板', 'items', 'item-1.md'), '---\nid: item-1\nstatus: todo\ntitle: keep\n---\n');
+  write(path.join(project, 'docs', '设计目标检查清单.md'), '# keep checklist body\n');
+  arrange(project, cache, 'agent');
+  assert.strictEqual(fs.readFileSync(path.join(project, '.myrules-context.md'), 'utf8'), '当前目的：已有目的\n');
+  assert.strictEqual(fs.readFileSync(path.join(project, 'docs', '能力', 'Foo', 'Foo设计目标.md'), 'utf8'), '# keep goal\n');
+  assert.match(fs.readFileSync(path.join(project, 'docs', '看板', 'items', 'item-1.md'), 'utf8'), /keep/);
+  assert.strictEqual(fs.readFileSync(path.join(project, 'docs', '设计目标检查清单.md'), 'utf8'), '# keep checklist body\n');
+});
+
+test('sync updates hosted method doc after cache edit and leaves context alone', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-sync-method-');
+  arrange(project, cache, 'agent');
+  write(path.join(project, '.myrules-context.md'), '当前目的：不动\n');
+  const methodSrc = path.join(cache, 'method', 'core', '项目工作法.md');
+  fs.appendFileSync(methodSrc, '\nSYNC_MARKER_LINE\n');
+  runGit(cache, ['add', '-A']);
+  runGit(cache, ['commit', '-m', 'tweak method']);
+  syncCli.run(syncOpts(project, cache));
+  assert.match(fs.readFileSync(path.join(project, 'docs', '方法', 'myrules-项目工作法.md'), 'utf8'), /SYNC_MARKER_LINE/);
+  assert.strictEqual(fs.readFileSync(path.join(project, '.myrules-context.md'), 'utf8'), '当前目的：不动\n');
+});
+
+test('two alwaysApply method rules never coexist; switching runtime stale-cleans hosted files and keeps ledger', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-switch-');
+  arrange(project, cache, 'agent');
+  write(path.join(project, 'docs', '看板', 'items', 'item-1.md'), '---\nid: item-1\nstatus: todo\ntitle: stay\n---\n');
+  arrange(project, cache, 'project');
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-coordinator.mdc')));
+  assert.strictEqual(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-agent.mdc')), false);
+  assert.strictEqual(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-planner.md')), false);
+  assert.match(fs.readFileSync(path.join(project, 'docs', '看板', 'items', 'item-1.md'), 'utf8'), /stay/);
+  write(path.join(project, 'ledger', 'ops', 'notes.md'), 'hand written ops\n');
+  arrange(project, cache, 'agent');
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-agent.mdc')));
+  assert.strictEqual(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-coordinator.mdc')), false);
+  assert.strictEqual(fs.readFileSync(path.join(project, 'ledger', 'ops', 'notes.md'), 'utf8'), 'hand written ops\n');
+});
+
+test('sync --all deploys matching role packs per registered runtime', () => {
+  const cache = makeCacheRepo();
+  const homeDir = tmp('myrules-rt-all-home-');
+  const agentProj = tmp('myrules-rt-all-agent-');
+  const projectProj = tmp('myrules-rt-all-project-');
+  arrange(agentProj, cache, 'agent', { homeDir });
+  arrange(projectProj, cache, 'project', { homeDir });
+  syncCli.run({ ...syncOpts(agentProj, cache), homeDir, all: true });
+  assert.ok(fs.existsSync(path.join(agentProj, '.cursor', 'agents', 'myrules-planner.md')));
+  assert.strictEqual(fs.existsSync(path.join(agentProj, '.cursor', 'agents', 'myrules-publisher.md')), false);
+  assert.ok(fs.existsSync(path.join(projectProj, '.cursor', 'agents', 'myrules-publisher.md')));
+  assert.strictEqual(fs.existsSync(path.join(projectProj, '.cursor', 'agents', 'myrules-planner.md')), false);
+});
+
+test('force arrange still does not overwrite instance files', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-force-');
+  arrange(project, cache, 'agent');
+  write(path.join(project, '.myrules-context.md'), 'keep purpose\n');
+  write(path.join(project, 'docs', '能力', 'Foo', 'Foo设计目标.md'), 'keep goal\n');
+  arrange(project, cache, 'agent', { force: true });
+  assert.strictEqual(fs.readFileSync(path.join(project, '.myrules-context.md'), 'utf8'), 'keep purpose\n');
+  assert.strictEqual(fs.readFileSync(path.join(project, 'docs', '能力', 'Foo', 'Foo设计目标.md'), 'utf8'), 'keep goal\n');
+});
+
+test('unprefixed legacy 项目工作法.md is not overwritten', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-legacy-method-');
+  write(path.join(project, 'docs', '方法', '项目工作法.md'), '# old copy once\n');
+  arrange(project, cache, 'agent');
+  assert.strictEqual(fs.readFileSync(path.join(project, 'docs', '方法', '项目工作法.md'), 'utf8'), '# old copy once\n');
+  assert.ok(fs.existsSync(path.join(project, 'docs', '方法', 'myrules-项目工作法.md')));
+});
+
+test('init without --runtime fails', () => {
+  const project = tmp('myrules-rt-noruntime-');
+  assert.throws(() => initCli.run({ project, quiet: true }), /--runtime/);
+});
+
+test('legacy unprefixed method repo syncs as agent and writes runtime file', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-legacy-sync-');
+  installSkill(project);
+  write(path.join(project, 'docs', '方法', '项目工作法.md'), '# old\n');
+  syncCli.run(syncOpts(project, cache));
+  const marker = JSON.parse(fs.readFileSync(path.join(project, '.myrules-runtime.json'), 'utf8'));
+  assert.strictEqual(marker.runtime, 'agent');
+  assert.strictEqual(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-coordinator.mdc')), false);
+});
+
+test('old registry string entries are treated as agent', () => {
+  const home = tmp('myrules-rt-reg-');
+  const project = tmp('myrules-rt-reg-proj-');
+  fs.mkdirSync(project, { recursive: true });
+  const file = path.join(home, '.myrules', '.registry.json');
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify({ projects: [project] }, null, 2) + '\n');
+  const entries = registry.listRegisteredProjectEntries(home);
+  assert.strictEqual(entries[0].runtime, 'agent');
+  assert.strictEqual(entries[0].path, project);
+});
+
+test('project file runtime wins over registry and is written back', () => {
+  const cache = makeCacheRepo();
+  const homeDir = tmp('myrules-rt-conflict-home-');
+  const project = tmp('myrules-rt-conflict-');
+  arrange(project, cache, 'agent', { homeDir });
+  writeRuntime(project, 'project');
+  syncCli.run({ ...syncOpts(project, cache), homeDir });
+  const reg = registry.readRegistry(homeDir);
+  const entry = reg.projects.find((p) => p.path === project);
+  assert.strictEqual(entry.runtime, 'project');
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-coordinator.mdc')));
+});
+
+test('sync project coordinator after cache edit updates charter and leaves ledger notes', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-coord-sync-');
+  arrange(project, cache, 'project');
+  write(path.join(project, 'ledger', 'board', 'card.md'), 'in progress card\n');
+  fs.appendFileSync(path.join(cache, 'method', 'project', 'coordinator.md'), '\nCOORD_MARKER\n');
+  runGit(cache, ['add', '-A']);
+  runGit(cache, ['commit', '-m', 'tweak coordinator']);
+  syncCli.run(syncOpts(project, cache));
+  assert.match(fs.readFileSync(path.join(project, 'docs', '方法', 'myrules-coordinator.md'), 'utf8'), /COORD_MARKER/);
+  assert.strictEqual(fs.readFileSync(path.join(project, 'ledger', 'board', 'card.md'), 'utf8'), 'in progress card\n');
+});
+
+test('ambiguous 布置仓库 is not documented as defaulting to agent', () => {
+  const skill = fs.readFileSync(path.join(REPO_ROOT, 'skills', 'myrules', 'SKILL.md'), 'utf8');
+  assert.match(skill, /普通 Agent 还是 Project|ask.*runtime|问.*runtime|问：普通/i);
+  assert.doesNotMatch(skill, /布置仓库.*默认.*agent/i);
+  assert.match(skill, /布置普通仓库/);
+  assert.match(skill, /布置 Project 仓库/);
+});
+
+test('same runtime arrange without force refuses', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-again-');
+  arrange(project, cache, 'agent');
+  assert.throws(() => arrange(project, cache, 'agent'), /Already arranged|Use sync/);
+});

@@ -34,3 +34,16 @@ test('listRegisteredProjects filters out projects that no longer exist on disk',
   const list = registry.listRegisteredProjects(home);
   assert.ok(!list.includes(project));
 });
+
+test('registerProject stores runtime and upgrades a legacy string list', () => {
+  const home = tmpHome();
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-proj-'));
+  const file = path.join(home, '.myrules', '.registry.json');
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify({ projects: [project] }, null, 2) + '\n');
+  const entries = registry.listRegisteredProjectEntries(home);
+  assert.strictEqual(entries[0].runtime, 'agent');
+  registry.registerProject(project, home, 'project');
+  const again = registry.readRegistry(home);
+  assert.strictEqual(again.projects[0].runtime, 'project');
+});

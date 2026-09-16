@@ -7,7 +7,7 @@ const { execFileSync } = require('node:child_process');
 const syncCli = require('../tools/sync/sync');
 const installSkillCli = require('../tools/sync/install-skill');
 const state = require('../tools/sync/lib/state');
-const { seedCacheContent } = require('./helpers/cache-seed');
+const { seedCacheContent, writeRuntime } = require('./helpers/cache-seed');
 
 function run(cwd, args) {
   execFileSync('git', args, { cwd, stdio: 'ignore' });
@@ -32,6 +32,7 @@ function installSkill(project) {
     project,
     sourceDir: installSkillCli.getBundledRepoRoot(),
   });
+  writeRuntime(project, 'agent');
 }
 
 function baseOpts(project, cache) {

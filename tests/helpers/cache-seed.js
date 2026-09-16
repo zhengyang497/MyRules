@@ -12,6 +12,24 @@ function copySkillDir(srcDir, destDir) {
   }
 }
 
+function copyDirRecursive(src, dest) {
+  if (!fs.existsSync(src)) return;
+  fs.mkdirSync(dest, { recursive: true });
+  for (const ent of fs.readdirSync(src, { withFileTypes: true })) {
+    const from = path.join(src, ent.name);
+    const to = path.join(dest, ent.name);
+    if (ent.isDirectory()) copyDirRecursive(from, to);
+    else fs.copyFileSync(from, to);
+  }
+}
+
+function writeRuntime(projectRoot, runtime = 'agent') {
+  fs.writeFileSync(
+    path.join(projectRoot, '.myrules-runtime.json'),
+    JSON.stringify({ runtime }, null, 2) + '\n'
+  );
+}
+
 function seedCacheContent(cacheDir) {
   fs.mkdirSync(path.join(cacheDir, 'rules', 'user'), { recursive: true });
   fs.mkdirSync(path.join(cacheDir, 'rules', 'project'), { recursive: true });
@@ -36,6 +54,11 @@ function seedCacheContent(cacheDir) {
     path.join(REPO_ROOT, 'hooks', 'user', 'session-log.js'),
     path.join(cacheDir, 'hooks', 'user', 'session-log.js')
   );
+  const workerHook = path.join(REPO_ROOT, 'hooks', 'project', 'subagent-start-worker.js');
+  if (fs.existsSync(workerHook)) {
+    fs.copyFileSync(workerHook, path.join(cacheDir, 'hooks', 'project', 'subagent-start-worker.js'));
+  }
+  copyDirRecursive(path.join(REPO_ROOT, 'method'), path.join(cacheDir, 'method'));
 }
 
-module.exports = { seedCacheContent, REPO_ROOT, copySkillDir };
+module.exports = { seedCacheContent, REPO_ROOT, copySkillDir, writeRuntime };

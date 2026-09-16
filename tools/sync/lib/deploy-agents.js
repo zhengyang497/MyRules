@@ -4,6 +4,10 @@ const paths = require('./paths');
 const transform = require('./transform');
 const drift = require('./drift');
 const loadManifest = require('./load-manifest');
+const runtimeLib = require('./runtime');
+
+const WORKER_FOOTER =
+  '\n\n## 工人纪律\n\n你是工人，不是经理。禁止改目标册（`docs/能力`、`docs/设计目标检查清单.md`、ledger 里的 PURPOSE/GOALS）。范围只来自当前派工卡。\n';
 
 function listMdFiles(dir) {
   if (!fs.existsSync(dir)) return [];
@@ -30,13 +34,14 @@ function scanProjectMissingAgents(cacheDir) {
   return missing;
 }
 
-function collectProjectBodiesForRole(cacheDir, roleId) {
+function collectProjectBodiesForRole(cacheDir, roleId, runtime) {
   const dir = path.join(cacheDir, 'rules', 'project');
   const bodies = [];
   for (const f of listMdFiles(dir)) {
     const content = fs.readFileSync(path.join(dir, f), 'utf8');
-    const { agents, body } = transform.parseRuleFrontmatter(content);
+    const { agents, runtimes, body } = transform.parseRuleFrontmatter(content);
     if (agents === null) continue;
+    if (runtime && !transform.runtimeMatches(runtimes, runtime)) continue;
     if (transform.roleMatchesAgents(agents, roleId)) {
       bodies.push({ topic: path.basename(f, '.md'), body });
     }
@@ -58,6 +63,11 @@ function staleAgentCleanup(agentsDir, prefix, currentRoleIds, ext) {
   return removed;
 }
 
+function withWorkerFooter(content, runtime, roleId) {
+  if (runtime !== 'project' || roleId === 'publisher') return content;
+  return content.replace(/\s*$/, '') + WORKER_FOOTER;
+}
+
 function deployAgents(cacheDir, projectRoot, opts = {}) {
   const manifest = opts.manifest || loadManifest.loadManifest(cacheDir);
   const agentsConfig = manifest.agents;
@@ -67,7 +77,9 @@ function deployAgents(cacheDir, projectRoot, opts = {}) {
   const prefix = agentsConfig.prefix;
   const force = opts.force || false;
   const priorHashes = opts.priorAgentHashes || {};
-  const roleIds = Object.keys(agentsConfig.roles);
+  const runtime = opts.runtime || 'agent';
+  const filteredRoles = runtimeLib.rolesForRuntime(manifest, runtime);
+  const roleIds = Object.keys(filteredRoles);
   const userBodies = collectUserBodies(cacheDir);
 
   const cursorDir = paths.getCursorAgentsDir(projectRoot);
@@ -81,23 +93,27 @@ function deployAgents(cacheDir, projectRoot, opts = {}) {
   const missingAgents = scanProjectMissingAgents(cacheDir);
 
   for (const roleId of roleIds) {
-    const roleMeta = agentsConfig.roles[roleId];
+    const roleMeta = filteredRoles[roleId];
     const agentName = `${prefix}${roleId}`;
-    const projectBodies = collectProjectBodiesForRole(cacheDir, roleId);
+    const projectBodies = collectProjectBodiesForRole(cacheDir, roleId, runtime);
 
     const cursorFile = `${agentName}.md`;
     const cursorTarget = path.join(cursorDir, cursorFile);
     const cursorStateKey = path.posix.join(agentsConfig.cursorDir, cursorFile);
     tracker.writeTracked(
       cursorTarget,
-      transform.transformForAgent({
-        roleMeta,
-        roleId,
-        agentName,
-        userBodies,
-        projectBodies,
-        platform: 'cursor',
-      }),
+      withWorkerFooter(
+        transform.transformForAgent({
+          roleMeta,
+          roleId,
+          agentName,
+          userBodies,
+          projectBodies,
+          platform: 'cursor',
+        }),
+        runtime,
+        roleId
+      ),
       cursorStateKey
     );
 
@@ -106,38 +122,48 @@ function deployAgents(cacheDir, projectRoot, opts = {}) {
     const claudeStateKey = path.posix.join(agentsConfig.claudeDir, claudeFile);
     tracker.writeTracked(
       claudeTarget,
-      transform.transformForAgent({
-        roleMeta,
-        roleId,
-        agentName,
-        userBodies,
-        projectBodies,
-        platform: 'claude',
-      }),
+      withWorkerFooter(
+        transform.transformForAgent({
+          roleMeta,
+          roleId,
+          agentName,
+          userBodies,
+          projectBodies,
+          platform: 'claude',
+        }),
+        runtime,
+        roleId
+      ),
       claudeStateKey
     );
 
-    const opencodeFile = `${agentName}.md`;
-    const opencodeTarget = path.join(opencodeDir, opencodeFile);
-    const opencodeStateKey = path.posix.join('.opencode/agents', opencodeFile);
-    tracker.writeTracked(
-      opencodeTarget,
-      transform.transformForAgent({
-        roleMeta,
-        roleId,
-        agentName,
-        userBodies,
-        projectBodies,
-        platform: 'opencode',
-      }),
-      opencodeStateKey
-    );
+    if (runtime !== 'project') {
+      const opencodeFile = `${agentName}.md`;
+      const opencodeTarget = path.join(opencodeDir, opencodeFile);
+      const opencodeStateKey = path.posix.join('.opencode/agents', opencodeFile);
+      tracker.writeTracked(
+        opencodeTarget,
+        withWorkerFooter(
+          transform.transformForAgent({
+            roleMeta,
+            roleId,
+            agentName,
+            userBodies,
+            projectBodies,
+            platform: 'opencode',
+          }),
+          runtime,
+          roleId
+        ),
+        opencodeStateKey
+      );
+    }
   }
 
   const staleRemoved = [
     ...staleAgentCleanup(cursorDir, prefix, roleIds, '.md'),
     ...staleAgentCleanup(claudeDir, prefix, roleIds, '.md'),
-    ...staleAgentCleanup(opencodeDir, prefix, roleIds, '.md'),
+    ...staleAgentCleanup(opencodeDir, prefix, runtime === 'project' ? [] : roleIds, '.md'),
   ];
 
   for (const key of Object.keys(priorHashes)) {

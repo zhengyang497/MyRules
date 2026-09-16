@@ -19,4 +19,15 @@ function hashContent(content) {
   return crypto.createHash('sha256').update(content, 'utf8').digest('hex');
 }
 
-module.exports = { ensureDir, listFilesWithExt, hashContent };
+function copyDirRecursive(src, dest) {
+  if (!fs.existsSync(src)) return;
+  ensureDir(dest);
+  for (const ent of fs.readdirSync(src, { withFileTypes: true })) {
+    const from = path.join(src, ent.name);
+    const to = path.join(dest, ent.name);
+    if (ent.isDirectory()) copyDirRecursive(from, to);
+    else fs.copyFileSync(from, to);
+  }
+}
+
+module.exports = { ensureDir, listFilesWithExt, hashContent, copyDirRecursive };

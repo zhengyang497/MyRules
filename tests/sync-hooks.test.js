@@ -9,7 +9,7 @@ const syncCli = require('../tools/sync/sync');
 const installSkillCli = require('../tools/sync/install-skill');
 const state = require('../tools/sync/lib/state');
 const hooksState = require('../tools/sync/lib/hooks-state');
-const { seedCacheContent } = require('./helpers/cache-seed');
+const { seedCacheContent, writeRuntime } = require('./helpers/cache-seed');
 
 function run(cwd, args) {
   execFileSync('git', args, { cwd, stdio: 'ignore' });
@@ -33,6 +33,7 @@ function makeCacheRepo() {
 
 function installSkill(project) {
   installSkillCli.run({ project, sourceDir: installSkillCli.getBundledRepoRoot() });
+  writeRuntime(project, 'agent');
 }
 
 function baseOpts(project, cache, homeDir) {
@@ -63,7 +64,10 @@ test('sync.run deploys both project and user hooks in one call', () => {
   assert.ok(fs.existsSync(path.join(homeDir, '.cursor', 'hooks.json')));
 
   const s = state.readState(project);
-  assert.deepStrictEqual(Object.keys(s.deployedHooks), ['session-start-context']);
+  assert.deepStrictEqual(Object.keys(s.deployedHooks).sort(), [
+    'session-start-context',
+    'subagent-start-worker',
+  ]);
 
   const hs = hooksState.readUserHooksState(homeDir);
   assert.deepStrictEqual(Object.keys(hs.deployedHooks), ['session-log']);
@@ -96,7 +100,10 @@ test('sync.run second run reports no drift for untouched hook files', () => {
   syncCli.run(baseOpts(project, cache, homeDir));
 
   const s = state.readState(project);
-  assert.deepStrictEqual(Object.keys(s.deployedHooks), ['session-start-context']);
+  assert.deepStrictEqual(Object.keys(s.deployedHooks).sort(), [
+    'session-start-context',
+    'subagent-start-worker',
+  ]);
 });
 
 test('status.run reports project and user hook counts', () => {
@@ -108,6 +115,6 @@ test('status.run reports project and user hook counts', () => {
 
   const statusCli = require('../tools/sync/status');
   const result = statusCli.run({ project, cacheDir: cache, homeDir });
-  assert.strictEqual(result.projectHooksDeployed, 1);
+  assert.strictEqual(result.projectHooksDeployed, 2);
   assert.strictEqual(result.userHooksDeployed, 1);
 });

@@ -1,10 +1,13 @@
 ---
 name: myrules
 description: >
-  Sync MyRules cache to Cursor/Claude projects. Use for bootstrap (install skill then sync),
-  sync/export/push/prune/status, laying down the project-method skeleton, or when the user
-  says「sync my rules」「同步我的规则」「设置 MyRules」「导入 MyRules」
-  「从 GitHub 安装 MyRules」「布置仓库」「布置项目工作法」「按方法论初始化」.
+  Sync MyRules cache to Cursor/Claude projects. Use for bootstrap (install skill),
+  arranging a repo for ordinary Agent or Cursor Projects (always includes sync),
+  daily sync/export/push/prune/status, or when the user says「sync my rules」
+  「同步我的规则」「同步规则」「设置 MyRules」「导入 MyRules」
+  「从 GitHub 安装 MyRules」「布置普通仓库」「布置 Project 仓库」
+  「按 Agent 工作法初始化」「按 Project 工作法初始化」
+  「布置仓库」「布置项目工作法」「按方法论初始化」.
 ---
 
 # MyRules
@@ -13,41 +16,50 @@ description: >
 
 | Term | Meaning |
 |------|---------|
-| **cache** | `~/.myrules/` — rules, hooks, `skills-manifest.js` |
+| **cache** | `~/.myrules/` — rules, hooks, method pack, `skills-manifest.js` |
 | **artifacts** | Generated `myrules-*` files in projects / `~/.cursor/` — do not edit |
-| **bootstrap** | Install this skill before sync phrases work |
+| **bootstrap** | Install this skill before sync/arrange phrases work |
+| **runtime** | `agent` or `project` in `.myrules-runtime.json` |
 
 Details: [`REFERENCE.md`](REFERENCE.md). Commands: [`COMMANDS.md`](COMMANDS.md).
 
 Protect list and safety rules: [`REFERENCE.md`](REFERENCE.md#protect--never-read-write-or-delete-these).
 
+## Three phrases
+
+| User says | Do |
+|-----------|----|
+| **同步规则** / **sync my rules** / **同步我的规则** | Sync. If there is no runtime marker, **fail** and tell them to arrange first. Do not guess. |
+| **布置普通仓库** / **按 Agent 工作法初始化** | `init-project-method.js --runtime agent` then it **must sync**. |
+| **布置 Project 仓库** / **按 Project 工作法初始化** | `init-project-method.js --runtime project` then it **must sync**. |
+
+Vague **「布置仓库」「布置项目工作法」「按方法论初始化」** — ask: 普通 Agent 还是 Project. Do **not** pick Agent automatically. After they pick, run the matching arrange (arrange includes sync).
+
+**「帮我设置 MyRules」** = bootstrap (if skill missing) → ask runtime → arrange (includes sync).
+
+Already arranged for the same runtime: refuse, tell them to sync. `--force` rewrites hosted method files only, never instance ledger/goals.
+
+「把这个仓库改成 Project / 改成普通」: change `.myrules-runtime.json`, then sync. Instance files stay.
+
 ## Bootstrap (new project)
 
-Phrases like **「sync my rules」** only work **after** this skill is in the
-project. On a brand-new project, run both steps in order.
-
-### Step 1 — bootstrap: install skill
-
 User says **「从 GitHub 安装 MyRules skill」**, **「导入 MyRules」**, or similar.
-They should **not** say「sync my rules」yet.
 
-1. Shallow-clone `https://github.com/zhengyang497/MyRules.git` (or use an
-   existing checkout).
+1. Shallow-clone `https://github.com/zhengyang497/MyRules.git` (or use an existing checkout).
 2. Run `node "<clone>/tools/sync/install-skill.js" --project "<workspace>"`.
-3. Remind the user to **commit** `.cursor/skills/myrules/` (and
-   `.claude/skills/myrules/` if present).
+3. Remind the user to **commit** `.cursor/skills/myrules/` (and `.claude/skills/myrules/` if present).
 
-`~/.myrules/` is **not** required for this step. `install-skill.js` copies this
-skill directory only — it does not deploy rules, hooks, or external skills.
+Do **not** deploy the method pack in this step.
 
-**Done when:** `.cursor/skills/myrules/SKILL.md` exists (and
-`.claude/skills/myrules/SKILL.md` when Claude is in scope).
+**Done when:** `.cursor/skills/myrules/SKILL.md` exists (and `.claude/skills/myrules/SKILL.md` when Claude is in scope).
 
-### Step 2 — sync
+## Sync
 
-After the skill is loaded, user says **「sync my rules」** or **「同步我的规则」**.
+After the skill is loaded **and** the repo is arranged, user says **「sync my rules」** / **「同步我的规则」** / **「同步规则」**.
 
-Run one command from [`COMMANDS.md`](COMMANDS.md) (sync row), then verify:
+```text
+node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>"
+```
 
 **Done when all of:**
 
@@ -58,36 +70,38 @@ Run one command from [`COMMANDS.md`](COMMANDS.md) (sync row), then verify:
    stop and tell the user — suggest `export` or `--force` after confirmation)
 5. Status JSON: `lastSyncAt` is set and recent
 
-### Step 3 — project-method skeleton (once)
+If `.myrules-runtime.json` is missing and the registry has no runtime (and this is not a legacy unprefixed `docs/方法/项目工作法.md` repo): **non-zero exit**. Tell them to 布置普通仓库 or 布置 Project 仓库.
 
-User says **「布置仓库」**, **「布置项目工作法」**, or **「按方法论初始化」**.
+## Arrange ordinary repo (`runtime=agent`)
 
-This copies `templates/project-method/` into the project **once**. Those files
-are owned by the project after that. Later `sync.js` does **not** update or
-overwrite them.
+```text
+node "$HOME/.myrules/tools/sync/init-project-method.js" --runtime agent --project "<workspace>"
+```
 
-1. Run `node "$HOME/.myrules/tools/sync/init-project-method.js" --project "<workspace>"`
-   (or the same script from a MyRules clone when the cache does not exist yet).
-2. If the project already has `docs/方法/项目工作法.md`, the script refuses.
-   Only pass `--force` when the user explicitly wants to overwrite the skeleton.
-   `--force` still leaves an existing `README.md` and `.myrules-context.md` alone.
-3. Remind the user to write the current purpose in `.myrules-context.md` and to
-   register the first board item with `npm run board -- add`.
+Creates the instance skeleton if missing, writes `.myrules-runtime.json`, then **syncs**.
 
-**Done when:** `init-project-method.js` exits 0, `docs/方法/项目工作法.md` and
-`scripts/board.mjs` exist, and `.cursor/rules/` has `项目工作法.mdc` (not a
-`红线.mdc` and not `myrules-*` copies of the method files).
+**Done when:** runtime marker is `agent`, `docs/方法/myrules-项目工作法.md` exists, agent short rule exists, **no** coordinator "don't write code" rule, roles are planner/implementer/reviewer.
 
-### One-shot setup
+Do not tell them they must `board add` first.
 
-If the user says **「帮我设置 MyRules」**, still do **step 1 then step 2** in
-order. That does **not** lay down the project-method skeleton — see step 3.
+## Arrange Project repo (`runtime=project`)
+
+```text
+node "$HOME/.myrules/tools/sync/init-project-method.js" --runtime project --project "<workspace>"
+```
+
+Creates empty goal shelves + ledger + merges `.cursor/environment.json` install, then **syncs**. Print the first-message file at the end.
+
+**Done when:** coordinator charter exists, ledger schema exists, coordinator short rule exists, roles are researcher/implementer/reviewer/publisher, **no** agent "main session may write code" short rule.
+
 ## Branch routing
 
 | User intent | Read | Done when |
 |-------------|------|-----------|
 | Daily sync | [`COMMANDS.md`](COMMANDS.md) → sync | Sync completion criteria above |
-| Lay down project-method skeleton | [`COMMANDS.md`](COMMANDS.md) → init-project-method | Step 3 completion criteria above |
+| 布置普通仓库 | [`COMMANDS.md`](COMMANDS.md) → init `--runtime agent` | Arrange agent criteria above (includes sync) |
+| 布置 Project 仓库 | [`COMMANDS.md`](COMMANDS.md) → init `--runtime project` | Arrange project criteria above (includes sync) |
+| Switch runtime | Write `.myrules-runtime.json`, then sync | Hosted files match the new runtime; instance files remain |
 | Edit cache content | Read `~/.myrules/rules/meta/authoring.md`, then [`REFERENCE.md`](REFERENCE.md) content map + [`COMMANDS.md`](COMMANDS.md) push + sync | `push.js` exit 0 + sync criteria |
 | Local artifact edits | [`COMMANDS.md`](COMMANDS.md) → export or `--force` | User confirms before `--force` |
 | Take over legacy rules | [`COMMANDS.md`](COMMANDS.md) → prune (dry-run first) | Dry-run fingerprint matches before real prune |
