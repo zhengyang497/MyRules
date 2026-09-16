@@ -19,7 +19,7 @@ description: >
 | **cache** | `~/.myrules/` — rules, hooks, method pack, `skills-manifest.js` |
 | **artifacts** | Generated `myrules-*` files in projects / `~/.cursor/` — do not edit |
 | **bootstrap** | Install this skill before sync/arrange phrases work |
-| **runtime** | `agent` or `project` in `.myrules-runtime.json` |
+| **runtime** | `agent` or `project` in `.myrules-runtime.json`. Optional `instanceLanding: true` keeps a repo's own paths/commands |
 
 Details: [`REFERENCE.md`](REFERENCE.md). Commands: [`COMMANDS.md`](COMMANDS.md).
 
@@ -37,9 +37,9 @@ Vague **「布置仓库」「布置项目工作法」「按方法论初始化」
 
 **「帮我设置 MyRules」** = bootstrap (if skill missing) → ask runtime → arrange (includes sync).
 
-Already arranged for the same runtime: refuse, tell them to sync. `--force` rewrites hosted method files only, never instance ledger/goals.
+Already arranged for the same runtime: refuse, tell them to sync. `--force` rewrites hosted method files only, never instance ledger/goals. If `.myrules-runtime.json` has `instanceLanding: true`, `--force` still does not overwrite the project-method skill, and does not restore dropped board/runtime files.
 
-「把这个仓库改成 Project / 改成普通」: change `.myrules-runtime.json`, then sync. Instance files stay.
+「把这个仓库改成 Project / 改成普通」: change `.myrules-runtime.json`, then sync. Instance files stay. Keep `instanceLanding` if it was set.
 
 ## Bootstrap (new project)
 
@@ -71,6 +71,8 @@ node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>"
 5. Status JSON: `lastSyncAt` is set and recent
 
 If `.myrules-runtime.json` is missing and the registry has no runtime (and this is not a legacy unprefixed `docs/方法/项目工作法.md` repo): **non-zero exit**. Tell them to 布置普通仓库 or 布置 Project 仓库.
+
+If this repo owns its own goal-shelf paths and board commands, it must set `"instanceLanding": true` in `.myrules-runtime.json` **before** sync. Then sync still updates principles (`docs/方法/myrules-项目工作法.md`) and session/small rules, but does not overwrite `.cursor/skills/project-method/`, and deletes hosted `myrules-method-agent`, `docs/方法/myrules-runtime.md`, and `scripts/myrules-board*.mjs`. Do not treat a leftover unprefixed `docs/方法/项目工作法.md` as this flag — old agent repos keep full method sync.
 
 ## Arrange ordinary repo (`runtime=agent`)
 

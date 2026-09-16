@@ -7,7 +7,7 @@ Vocabulary (used throughout this skill):
 - **artifacts** — generated `myrules-*` rules, hook scripts, `hooks.json`
   entries, and hosted method files in projects and `~/.cursor/`; never edit by hand
 - **bootstrap** — install this skill into the project before sync phrases work
-- **runtime** — `agent` or `project`, stored in project `.myrules-runtime.json`
+- **runtime** — `agent` or `project`, stored in project `.myrules-runtime.json`. Optional `instanceLanding: true` means this repo owns landing paths and board commands; sync still updates principles and identity short rules.
 
 ## Content map
 
@@ -18,10 +18,10 @@ Vocabulary (used throughout this skill):
 | Hooks | `hooks/user/*.js`, `hooks/project/*.js` | Cursor: `hooks.json` + `myrules-*.js`; Claude: `myrules-hook-*.md` convention docs only | See seed hooks `session-log`, `session-start-context`, `subagent-start-worker` |
 | External skills | `skills-manifest.js` | `~/.cursor/skills/<name>/`, `~/.claude/skills/<name>/` | Never list `myrules` here; optional `path` extracts a monorepo subfolder |
 | Bootstrap skill | `skills/myrules/*` | Project `.cursor/skills/myrules/` (and `.claude/skills/myrules/`) | Via `install-skill.js` |
-| Method pack | `method/core/`, `method/agent/`, `method/project/` | `docs/方法/myrules-*.md`, `.cursor/rules/myrules-method-*.mdc`, `.cursor/skills/project-method/`, `scripts/myrules-board*.mjs` | **Hosted.** Updated every sync. Core small-edit + session rules are alwaysApply on both runtimes; coordinator short rule is project-only with `alwaysApply: false`. Instance files (goals, ledger notes, `.myrules-context.md`) are never overwritten. Copy-once templates are abolished |
+| Method pack | `method/core/`, `method/agent/`, `method/project/` | `docs/方法/myrules-*.md`, `.cursor/rules/myrules-method-*.mdc`, `.cursor/skills/project-method/`, `scripts/myrules-board*.mjs` | **Hosted.** Updated every sync unless `instanceLanding` (see below). Core small-edit + session rules are alwaysApply on both runtimes; coordinator short rule is project-only with `alwaysApply: false`. Instance files (goals, ledger notes, `.myrules-context.md`) are never overwritten. Copy-once templates are abolished |
 | Rule authoring (meta) | `rules/meta/*.md` | *(not deployed)* | Read in cache before editing `user/` / `project/` |
 | Project context | — | `<project>/.myrules-context.md` | Instance; published purpose. Not overwritten by sync |
-| Runtime marker | — | `<project>/.myrules-runtime.json` | Commit this file. `agent` or `project`. Cloud clones read it |
+| Runtime marker | — | `<project>/.myrules-runtime.json` | Commit this file. `agent` or `project`. Optional `instanceLanding: true`. Cloud clones read it |
 
 **Adding a rule:** read `rules/meta/authoring.md` in the cache first, then create
 `rules/user/topic.md` or `rules/project/topic.md`, push, sync.
@@ -66,6 +66,21 @@ On each run (for one project or `--all`):
 There is no separate copy-once method step — arrange writes instance files and
 always syncs; later method edits are cache → push → sync.
 
+**`instanceLanding`:** set `{ "runtime": "agent", "instanceLanding": true }` (or
+`project`) in `.myrules-runtime.json` when this repo's board commands or goal
+paths differ from the hosted pack. Sync then:
+
+- still writes `docs/方法/myrules-项目工作法.md` and session/small short rules
+- **preserve** (never overwrite, never delete): `.cursor/skills/project-method/`
+  and `.claude/skills/project-method/`
+- **drop** (do not write; delete if present): `myrules-method-agent` short
+  rule, `docs/方法/myrules-runtime.md`, `scripts/myrules-board*.mjs`,
+  `scripts/myrules-goal-ledger.mjs`
+
+`--force` does not override preserve/drop. Arrange does not auto-set the flag.
+A leftover unprefixed `docs/方法/项目工作法.md` is **not** the same thing —
+those repos still get the full hosted pack.
+
 ## Platform notes
 
 - **Cursor user rules:** deployed as per-project `.cursor/rules/myrules-*.mdc`
@@ -92,6 +107,9 @@ always syncs; later method edits are cache → push → sync.
 - Claude auto memory under `~/.claude/projects/**/memory/**`
 - `.myrules-context.md`, `README.md`, `docs/能力/**`, `docs/设计目标检查清单.md` body, `docs/看板/items/**`, `ledger/board/**`, `ledger/ops/**`, draft/STATUS contents once written
 - Unprefixed `docs/方法/项目工作法.md` (legacy copy-once file)
+- With `instanceLanding: true`: `.cursor/skills/project-method/**` and
+  `.claude/skills/project-method/**` (preserve). Hosted board scripts and the
+  agent board short rule are dropped, not preserved.
 - Any `.cursor/rules/*` or `.claude/rules/*` file that does **not** start with
   `myrules-`, unless the user has explicitly confirmed `--prune-legacy-rules`
   after reviewing a `--dry-run` list

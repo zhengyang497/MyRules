@@ -96,6 +96,7 @@ function ensureDir(abs) {
 }
 
 function mergePackageJson(projectRoot) {
+  if (runtimeLib.hasInstanceLanding(projectRoot)) return;
   const pkgPath = path.join(projectRoot, 'package.json');
   const existed = fs.existsSync(pkgPath);
   const pkg = existed ? JSON.parse(fs.readFileSync(pkgPath, 'utf8')) : { private: true, type: 'module' };

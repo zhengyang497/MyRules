@@ -9,7 +9,7 @@ const MISSING_RUNTIME_MESSAGE =
   'No MyRules runtime marker (.myrules-runtime.json). Arrange the repo first: ' +
   '「布置普通仓库」(--runtime agent) or 「布置 Project 仓库」(--runtime project). Do not guess.';
 
-function readRuntimeFile(projectRoot) {
+function readRuntimeJson(projectRoot) {
   const file = path.join(projectRoot, RUNTIME_FILE);
   if (!fs.existsSync(file)) return null;
   let json;
@@ -21,17 +21,34 @@ function readRuntimeFile(projectRoot) {
   if (!VALID_RUNTIMES.has(json.runtime)) {
     throw new Error(`Invalid runtime in ${RUNTIME_FILE}: ${json.runtime}`);
   }
-  return json.runtime;
+  return json;
+}
+
+function readRuntimeFile(projectRoot) {
+  const json = readRuntimeJson(projectRoot);
+  return json ? json.runtime : null;
+}
+
+function hasInstanceLanding(projectRoot) {
+  const json = readRuntimeJson(projectRoot);
+  return Boolean(json && json.instanceLanding === true);
 }
 
 function writeRuntimeFile(projectRoot, runtime) {
   if (!VALID_RUNTIMES.has(runtime)) {
     throw new Error(`Invalid runtime: ${runtime}`);
   }
-  fs.writeFileSync(
-    path.join(projectRoot, RUNTIME_FILE),
-    JSON.stringify({ runtime }, null, 2) + '\n'
-  );
+  const file = path.join(projectRoot, RUNTIME_FILE);
+  let existing = {};
+  if (fs.existsSync(file)) {
+    try {
+      existing = JSON.parse(fs.readFileSync(file, 'utf8'));
+    } catch {
+      existing = {};
+    }
+  }
+  const next = { ...existing, runtime };
+  fs.writeFileSync(file, `${JSON.stringify(next, null, 2)}\n`);
 }
 
 function hasLegacyUnprefixedMethod(projectRoot) {
@@ -77,7 +94,9 @@ module.exports = {
   RUNTIME_FILE,
   VALID_RUNTIMES,
   MISSING_RUNTIME_MESSAGE,
+  readRuntimeJson,
   readRuntimeFile,
+  hasInstanceLanding,
   writeRuntimeFile,
   hasLegacyUnprefixedMethod,
   resolveRuntime,

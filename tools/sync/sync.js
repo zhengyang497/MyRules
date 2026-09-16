@@ -141,6 +141,7 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
     priorHashes: methodPrior,
     manifest,
     runtime,
+    instanceLanding: runtimeLib.hasInstanceLanding(projectRoot),
   });
   reportDrifted('method file(s)', methodResult.drifted);
 

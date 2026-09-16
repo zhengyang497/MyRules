@@ -227,6 +227,8 @@ test('unprefixed legacy 项目工作法.md is not overwritten', () => {
   arrange(project, cache, 'agent');
   assert.strictEqual(fs.readFileSync(path.join(project, 'docs', '方法', '项目工作法.md'), 'utf8'), '# old copy once\n');
   assert.ok(fs.existsSync(path.join(project, 'docs', '方法', 'myrules-项目工作法.md')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'skills', 'project-method', 'SKILL.md')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-agent.mdc')));
 });
 
 test('init without --runtime fails', () => {
@@ -349,6 +351,116 @@ test('non-empty standard checklist prints STATUS hint', () => {
   const result = initCli.run({ ...syncOpts(project, cache), runtime: 'project', quiet: true });
   assert.strictEqual(result.alreadyHadGoals, true);
   assert.match(fs.readFileSync(path.join(project, 'ledger', 'STATUS.md'), 'utf8'), /探路/);
+});
+
+test('writeRuntimeFile keeps instanceLanding and unknown fields', () => {
+  const project = tmp('myrules-rt-json-keep-');
+  write(
+    path.join(project, '.myrules-runtime.json'),
+    `${JSON.stringify({ runtime: 'agent', instanceLanding: true, note: 'keep' }, null, 2)}\n`
+  );
+  const runtimeLib = require('../tools/sync/lib/runtime');
+  assert.strictEqual(runtimeLib.hasInstanceLanding(project), true);
+  runtimeLib.writeRuntimeFile(project, 'project');
+  const json = JSON.parse(fs.readFileSync(path.join(project, '.myrules-runtime.json'), 'utf8'));
+  assert.strictEqual(json.runtime, 'project');
+  assert.strictEqual(json.instanceLanding, true);
+  assert.strictEqual(json.note, 'keep');
+});
+
+test('instanceLanding preserves custom skill, drops board command artifacts, still syncs principles', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-landing-');
+  installSkill(project);
+  write(
+    path.join(project, '.myrules-runtime.json'),
+    `${JSON.stringify({ runtime: 'agent', instanceLanding: true }, null, 2)}\n`
+  );
+  write(path.join(project, 'docs', '方法', '项目工作法.md'), '# overlay landing\n');
+  write(path.join(project, '.cursor', 'skills', 'project-method', 'SKILL.md'), '# CUSTOM_SKILL\n');
+  write(path.join(project, '.claude', 'skills', 'project-method', 'SKILL.md'), '# CUSTOM_CLAUDE_SKILL\n');
+  write(path.join(project, '.cursor', 'rules', 'myrules-method-agent.mdc'), 'DROP_ME_AGENT\n');
+  write(path.join(project, '.claude', 'rules', 'myrules-method-agent.md'), 'DROP_ME_CLAUDE\n');
+  write(path.join(project, 'docs', '方法', 'myrules-runtime.md'), 'DROP_ME_RUNTIME\n');
+  write(path.join(project, 'scripts', 'myrules-board.mjs'), '// drop board\n');
+  write(path.join(project, 'scripts', 'myrules-goal-ledger.mjs'), '// drop ledger\n');
+
+  syncCli.run(syncOpts(project, cache));
+
+  assert.strictEqual(
+    fs.readFileSync(path.join(project, '.cursor', 'skills', 'project-method', 'SKILL.md'), 'utf8'),
+    '# CUSTOM_SKILL\n'
+  );
+  assert.strictEqual(
+    fs.readFileSync(path.join(project, '.claude', 'skills', 'project-method', 'SKILL.md'), 'utf8'),
+    '# CUSTOM_CLAUDE_SKILL\n'
+  );
+  assert.strictEqual(fs.readFileSync(path.join(project, 'docs', '方法', '项目工作法.md'), 'utf8'), '# overlay landing\n');
+  assert.strictEqual(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-agent.mdc')), false);
+  assert.strictEqual(fs.existsSync(path.join(project, '.claude', 'rules', 'myrules-method-agent.md')), false);
+  assert.strictEqual(fs.existsSync(path.join(project, 'docs', '方法', 'myrules-runtime.md')), false);
+  assert.strictEqual(fs.existsSync(path.join(project, 'scripts', 'myrules-board.mjs')), false);
+  assert.strictEqual(fs.existsSync(path.join(project, 'scripts', 'myrules-goal-ledger.mjs')), false);
+  assert.ok(fs.existsSync(path.join(project, 'docs', '方法', 'myrules-项目工作法.md')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-session.mdc')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-small.mdc')));
+
+  fs.appendFileSync(path.join(cache, 'method', 'core', '项目工作法.md'), '\nPRINCIPLE_MARKER\n');
+  runGit(cache, ['add', '-A']);
+  runGit(cache, ['commit', '-m', 'tweak principle']);
+  syncCli.run(syncOpts(project, cache));
+  assert.match(fs.readFileSync(path.join(project, 'docs', '方法', 'myrules-项目工作法.md'), 'utf8'), /PRINCIPLE_MARKER/);
+  assert.strictEqual(
+    fs.readFileSync(path.join(project, '.cursor', 'skills', 'project-method', 'SKILL.md'), 'utf8'),
+    '# CUSTOM_SKILL\n'
+  );
+});
+
+test('instanceLanding --force still does not overwrite the skill', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-landing-force-');
+  installSkill(project);
+  write(
+    path.join(project, '.myrules-runtime.json'),
+    `${JSON.stringify({ runtime: 'agent', instanceLanding: true }, null, 2)}\n`
+  );
+  write(path.join(project, '.cursor', 'skills', 'project-method', 'SKILL.md'), '# KEEP_FORCE\n');
+  syncCli.run({ ...syncOpts(project, cache), force: true });
+  assert.strictEqual(
+    fs.readFileSync(path.join(project, '.cursor', 'skills', 'project-method', 'SKILL.md'), 'utf8'),
+    '# KEEP_FORCE\n'
+  );
+});
+
+test('instanceLanding force arrange leaves custom board scripts in package.json', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-landing-pkg-');
+  installSkill(project);
+  write(
+    path.join(project, '.myrules-runtime.json'),
+    `${JSON.stringify({ runtime: 'agent', instanceLanding: true }, null, 2)}\n`
+  );
+  write(
+    path.join(project, 'package.json'),
+    `${JSON.stringify(
+      {
+        private: true,
+        scripts: {
+          board: 'node scripts/query-improvements.mjs',
+          improvements: 'node scripts/query-improvements.mjs',
+          'improvements:add': 'node scripts/add-improvement.mjs',
+        },
+      },
+      null,
+      2
+    )}\n`
+  );
+  initCli.run({ ...syncOpts(project, cache), runtime: 'agent', force: true, quiet: true });
+  const pkg = JSON.parse(fs.readFileSync(path.join(project, 'package.json'), 'utf8'));
+  assert.strictEqual(pkg.scripts.board, 'node scripts/query-improvements.mjs');
+  assert.strictEqual(pkg.scripts['improvements:add'], 'node scripts/add-improvement.mjs');
+  const marker = JSON.parse(fs.readFileSync(path.join(project, '.myrules-runtime.json'), 'utf8'));
+  assert.strictEqual(marker.instanceLanding, true);
 });
 
 test('hand-edited project-method skill is skipped on later sync', () => {

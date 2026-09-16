@@ -36,16 +36,36 @@ function contentForEntry(srcPath, kind) {
   return raw;
 }
 
-function staleMethodCleanup(priorHashes, newHashes, projectRoot) {
+function relIsPreserved(rel, preserveRels) {
+  for (const p of preserveRels) {
+    if (rel === p || rel.startsWith(`${p}/`)) return true;
+  }
+  return false;
+}
+
+function collectPreserveRel(entry, preserveRels) {
+  if (entry.destDir) preserveRels.add(posixRel(entry.destDir.replace(/\\/g, '/')));
+  if (entry.dest) preserveRels.add(posixRel(entry.dest));
+}
+
+function unlinkIfFile(filePath) {
+  if (!fs.existsSync(filePath)) return false;
+  const st = fs.lstatSync(filePath);
+  if (st.isSymbolicLink() || st.isFile()) {
+    fs.unlinkSync(filePath);
+    return true;
+  }
+  return false;
+}
+
+function staleMethodCleanup(priorHashes, newHashes, projectRoot, preserveRels = new Set()) {
   const removed = [];
   for (const key of Object.keys(priorHashes || {})) {
     if (!key.startsWith('method:') || key in newHashes) continue;
     const rel = key.slice('method:'.length);
+    if (relIsPreserved(rel, preserveRels)) continue;
     const filePath = path.join(projectRoot, rel);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      removed.push(filePath);
-    }
+    if (unlinkIfFile(filePath)) removed.push(filePath);
   }
   return removed;
 }
@@ -55,9 +75,27 @@ function deployMethod(cacheDir, projectRoot, opts = {}) {
   const runtime = opts.runtime || 'agent';
   const force = opts.force || false;
   const priorHashes = opts.priorHashes || {};
+  const instanceLanding = Boolean(opts.instanceLanding);
   const tracker = drift.createTracker({ force, priorHashes });
+  const preserveRels = new Set();
+  const dropped = [];
 
   for (const entry of entriesForRuntime(manifest, runtime)) {
+    const owned = instanceLanding ? entry.instanceOwned : null;
+
+    if (owned === 'preserve') {
+      collectPreserveRel(entry, preserveRels);
+      continue;
+    }
+
+    if (owned === 'drop') {
+      if (entry.dest) {
+        const dest = path.join(projectRoot, posixRel(entry.dest));
+        if (unlinkIfFile(dest)) dropped.push(dest);
+      }
+      continue;
+    }
+
     if (entry.srcDir && entry.destDir) {
       const srcDir = path.join(cacheDir, entry.srcDir);
       if (!fs.existsSync(srcDir)) continue;
@@ -80,8 +118,8 @@ function deployMethod(cacheDir, projectRoot, opts = {}) {
     tracker.writeTracked(dest, contentForEntry(srcPath, entry.kind), `method:${destRel}`);
   }
 
-  const staleRemoved = staleMethodCleanup(priorHashes, tracker.hashes, projectRoot);
-  return { hashes: tracker.hashes, drifted: tracker.drifted, staleRemoved };
+  const staleRemoved = staleMethodCleanup(priorHashes, tracker.hashes, projectRoot, preserveRels);
+  return { hashes: tracker.hashes, drifted: tracker.drifted, staleRemoved, dropped, preserveRels: [...preserveRels] };
 }
 
-module.exports = { deployMethod, entriesForRuntime, staleMethodCleanup };
+module.exports = { deployMethod, entriesForRuntime, staleMethodCleanup, relIsPreserved };
