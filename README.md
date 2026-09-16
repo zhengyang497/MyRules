@@ -58,7 +58,7 @@ applicable).
 ### Step 2 — Arrange (picks a runtime and syncs)
 
 > **「布置普通仓库」** — ordinary Agent, main session may write code  
-> **「布置 Project 仓库」** — Cursor Projects coordinator, default 探路
+> **「布置 Project 仓库」** — Cursor Projects coordinator (the Project seat, not every local session), default 探路
 
 Vague **「布置仓库」** / **「布置项目工作法」** / **「按方法论初始化」** must
 ask which runtime. Do not default to agent.

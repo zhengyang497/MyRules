@@ -14,7 +14,7 @@ description: >-
 先读仓库根 `.myrules-runtime.json`。
 
 - `agent`：读 [`docs/方法/myrules-项目工作法.md`](../../../docs/方法/myrules-项目工作法.md) 和 [`docs/方法/myrules-runtime.md`](../../../docs/方法/myrules-runtime.md)。登记走 `npm run board`（托管脚本）。主会话可以写代码。
-- `project`：读工作法、runtime、[`docs/方法/myrules-coordinator.md`](../../../docs/方法/myrules-coordinator.md)。你若是主会话，就是 coordinator：禁止写业务代码；活看板在 `ledger/board/`；点头后派 publisher 出版 git 文首。
+- `project`：读工作法、runtime、[`docs/方法/myrules-coordinator.md`](../../../docs/方法/myrules-coordinator.md)。本地主会话可以写代码；琐碎改动直接做。只有用户贴了 first-message 或明确说你是经理时，你才是 coordinator：那时不要自己写业务代码；活看板在 `ledger/board/`；点头后派 publisher 出版 git 文首。
 
 模板与逐步核对见 [reference.md](reference.md)。
 
@@ -55,7 +55,7 @@ draft 不是规格。人点头后同一轮派 publisher 写入 git 文首和总�
 
 ## 按情况进流程
 
-没有进行中卡的改代码，不走下面的流程三，直接动手（project 下由 coordinator 派 implementer，自己不写）。
+没有进行中卡的改代码，不走下面的流程三，直接动手。本地主会话自己改。只有你是 coordinator 时才派 implementer、自己不写。
 
 | 情况 | 流程 |
 |------|------|

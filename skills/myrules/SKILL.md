@@ -80,7 +80,7 @@ node "$HOME/.myrules/tools/sync/init-project-method.js" --runtime agent --projec
 
 Creates the instance skeleton if missing, writes `.myrules-runtime.json`, then **syncs**.
 
-**Done when:** runtime marker is `agent`, `docs/方法/myrules-项目工作法.md` exists, agent short rule exists, **no** coordinator "don't write code" rule, roles are planner/implementer/reviewer.
+**Done when:** runtime marker is `agent`, hosted method pack includes small-edit + session alwaysApply rules, agent board short rule exists, **no** coordinator rule, roles are planner/implementer/reviewer.
 
 Do not tell them they must `board add` first.
 
@@ -92,7 +92,7 @@ node "$HOME/.myrules/tools/sync/init-project-method.js" --runtime project --proj
 
 Creates empty goal shelves + ledger + merges `.cursor/environment.json` install, then **syncs**. Print the first-message file at the end.
 
-**Done when:** coordinator charter exists, ledger schema exists, coordinator short rule exists, roles are researcher/implementer/reviewer/publisher, **no** agent "main session may write code" short rule.
+**Done when:** coordinator charter exists, ledger schema exists, coordinator short rule exists with `alwaysApply: false`, small-edit alwaysApply exists, session alwaysApply exists (local main session may write), **no** agent-only board short rule, roles are researcher/implementer/reviewer/publisher.
 
 ## Branch routing
 

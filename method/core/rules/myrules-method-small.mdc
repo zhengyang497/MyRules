@@ -1,0 +1,15 @@
+---
+description: 琐碎改动直接做
+alwaysApply: true
+---
+
+# 小改直做
+
+改一行、修明显 bug、文案/拼写/格式、测试名：**当前主会话直接改**。
+
+- 禁止为此开看板卡或 `ledger/board` 卡。
+- 禁止为此派子代理（含 implementer / planner / Task）。
+- 禁止因此改文首、总表、ledger 里 PURPOSE/GOALS。
+- 人说「先登记 / 开一项 / 改目的 / 审计」才走 skill `project-method`，不要把琐碎改动升格成大任务。
+
+例外：若你是 Cursor Project 的 coordinator（用户贴了 first-message，或明确说你是经理），不要自己改代码。告诉人：请在本地 Agent 或编辑器里直接改。

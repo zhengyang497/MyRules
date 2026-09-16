@@ -23,6 +23,17 @@ test('hosted method scripts and core docs exist in method/', () => {
   assert.match(skill, /标完成/);
   assert.match(skill, /\.myrules-runtime\.json/);
   assert.doesNotMatch(skill, /five execution flows/);
+  assert.doesNotMatch(skill, /你若是主会话，就是 coordinator/);
+  assert.ok(fs.existsSync(path.join(REPO_ROOT, 'method', 'core', 'rules', 'myrules-method-small.mdc')));
+  assert.ok(fs.existsSync(path.join(REPO_ROOT, 'method', 'core', 'rules', 'myrules-method-session.mdc')));
+  const coordRule = fs.readFileSync(
+    path.join(REPO_ROOT, 'method', 'project', 'rules', 'myrules-method-coordinator.mdc'),
+    'utf8'
+  );
+  assert.match(coordRule, /alwaysApply:\s*false/);
+  const small = fs.readFileSync(path.join(REPO_ROOT, 'method', 'core', 'rules', 'myrules-method-small.mdc'), 'utf8');
+  assert.match(small, /alwaysApply:\s*true/);
+  assert.match(small, /当前主会话直接改/);
 });
 
 test('bundled board-server chrome matches wiki fonts, sizes, and frame', () => {

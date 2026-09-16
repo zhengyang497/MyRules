@@ -154,6 +154,24 @@ test('deployAgents writes OpenCode agent files with mode: subagent and no name f
   assert.doesNotMatch(implementer, /permission:/);
 });
 
+test('project runtime worker footers differ by role', () => {
+  const cache = makeCache();
+  const project = makeProject();
+  deployAgents.deployAgents(cache, project, { force: false, priorAgentHashes: {}, runtime: 'project' });
+
+  const implementer = fs.readFileSync(path.join(project, '.cursor', 'agents', 'myrules-implementer.md'), 'utf8');
+  assert.match(implementer, /禁止改目标册/);
+  assert.match(implementer, /忽略 session 开场/);
+
+  const publisher = fs.readFileSync(path.join(project, '.cursor', 'agents', 'myrules-publisher.md'), 'utf8');
+  assert.match(publisher, /点头/);
+  assert.doesNotMatch(publisher, /禁止改目标册/);
+
+  const researcher = fs.readFileSync(path.join(project, '.cursor', 'agents', 'myrules-researcher.md'), 'utf8');
+  assert.match(researcher, /只读/);
+  assert.doesNotMatch(researcher, /禁止改目标册/);
+});
+
 test('deployAgents removes stale OpenCode agent files', () => {
   const cache = makeCache();
   const project = makeProject();

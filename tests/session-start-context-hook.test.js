@@ -21,6 +21,16 @@ test('handle returns {} when .myrules-context.md does not exist', () => {
   assert.deepStrictEqual(result, {});
 });
 
+test('handle skips injecting context for subagent sessions', () => {
+  const project = tmpProject();
+  fs.writeFileSync(path.join(project, '.myrules-context.md'), 'purpose that workers must not see');
+  const payload = { workspace_roots: [project] };
+  assert.deepStrictEqual(hook.handle({ ...payload, is_subagent: true }), {});
+  assert.deepStrictEqual(hook.handle({ ...payload, parent_session_id: 'parent-1' }), {});
+  assert.deepStrictEqual(hook.handle({ ...payload, agent_id: 'myrules-implementer' }), {});
+  assert.deepStrictEqual(hook.handle({ ...payload, composer_mode: 'subagent' }), {});
+});
+
 test('handle returns the file content as additional_context when it exists', () => {
   const project = tmpProject();
   fs.writeFileSync(path.join(project, '.myrules-context.md'), '# Status\n\nWorking on X');

@@ -1,8 +1,8 @@
 ---
-description: 项目工作法守门（Agent 运行时）
+description: Agent 运行时登记走 git 看板
 alwaysApply: true
 ---
 
-# 项目工作法
+# 登记入口
 
-你是普通 Agent 主会话，可以写业务代码。用户说登记、开一项、审计、改目的、标完成，或要写设计目标文首时，先读技能 `project-method`，按它做。
+本仓库 runtime 是 agent。登记、改页眉用 `npm run board`（托管脚本 `scripts/myrules-board.mjs`）。不要手改卡片页眉。

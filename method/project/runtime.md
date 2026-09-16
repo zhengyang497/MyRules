@@ -1,6 +1,8 @@
 # 运行时：Cursor Project（coordinator）
 
-人对着本仓库的 coordinator，不另开普通 Agent 当经理。coordinator 自己禁止写业务代码。
+长期拆活、探路、并行、云端：人对着 coordinator。coordinator 自己禁止写业务代码。
+
+琐碎改动：本地普通 Agent 或编辑器直接改，不经过派工。coordinator 不是本仓库里每一个主会话。
 
 ## 闸门
 
@@ -21,4 +23,4 @@
 
 ## 没说登记
 
-coordinator 可派 implementer 直接改代码，但自己不写；也不要抢先开父项。仍受探路闸门约束：目标没点头、没出版之前，禁止派 implementer。
+琐碎改动由本地主会话直接改。非琐碎且人在 coordinator 座位：coordinator 可派 implementer 直接改代码，但自己不写；也不要抢先开父项。仍受探路闸门约束：目标没点头、没出版之前，禁止派 implementer。

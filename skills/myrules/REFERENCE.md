@@ -18,7 +18,7 @@ Vocabulary (used throughout this skill):
 | Hooks | `hooks/user/*.js`, `hooks/project/*.js` | Cursor: `hooks.json` + `myrules-*.js`; Claude: `myrules-hook-*.md` convention docs only | See seed hooks `session-log`, `session-start-context`, `subagent-start-worker` |
 | External skills | `skills-manifest.js` | `~/.cursor/skills/<name>/`, `~/.claude/skills/<name>/` | Never list `myrules` here; optional `path` extracts a monorepo subfolder |
 | Bootstrap skill | `skills/myrules/*` | Project `.cursor/skills/myrules/` (and `.claude/skills/myrules/`) | Via `install-skill.js` |
-| Method pack | `method/core/`, `method/agent/`, `method/project/` | `docs/方法/myrules-*.md`, `.cursor/rules/myrules-method-*.mdc`, `.cursor/skills/project-method/`, `scripts/myrules-board*.mjs` | **Hosted.** Updated every sync. Instance files (goals, ledger notes, `.myrules-context.md`) are never overwritten. Copy-once templates are abolished |
+| Method pack | `method/core/`, `method/agent/`, `method/project/` | `docs/方法/myrules-*.md`, `.cursor/rules/myrules-method-*.mdc`, `.cursor/skills/project-method/`, `scripts/myrules-board*.mjs` | **Hosted.** Updated every sync. Core small-edit + session rules are alwaysApply on both runtimes; coordinator short rule is project-only with `alwaysApply: false`. Instance files (goals, ledger notes, `.myrules-context.md`) are never overwritten. Copy-once templates are abolished |
 | Rule authoring (meta) | `rules/meta/*.md` | *(not deployed)* | Read in cache before editing `user/` / `project/` |
 | Project context | — | `<project>/.myrules-context.md` | Instance; published purpose. Not overwritten by sync |
 | Runtime marker | — | `<project>/.myrules-runtime.json` | Commit this file. `agent` or `project`. Cloud clones read it |
@@ -76,8 +76,11 @@ always syncs; later method edits are cache → push → sync.
   `planner`, `implementer`, `reviewer`. `project` gets `researcher`,
   `implementer`, `reviewer`, `publisher`. Sources are `rules/user/` (all) +
   `rules/project/` (filtered by `agents:` and optional `runtimes:`). Agent file
-  bodies load only when a sub-agent is delegated. Coordinator alwaysApply rules
-  are not deployed into OpenCode project instructions.
+  bodies load only when a sub-agent is delegated. The coordinator method rule is
+  deployed for `project` with `alwaysApply: false` (the Project seat, not every
+  session). Coordinator-only bans are not deployed into OpenCode project
+  instructions. sessionStart context injection skips subagents; subagentStart
+  branches by worker role so publisher can edit published goals after a nod.
 - **Hooks:** Cursor runs deployed `.js` scripts via `hooks.json`. Claude receives
   generated markdown convention files only — follow them manually; no automatic
   trigger.

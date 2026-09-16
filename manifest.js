@@ -88,6 +88,30 @@ module.exports = {
       { src: "method/project/ledger.schema.md", dest: "docs/方法/myrules-ledger.schema.md", runtimes: ["project"] },
       { src: "method/project/FIRST-MESSAGE.md", dest: "docs/方法/myrules-first-message.md", runtimes: ["project"] },
       {
+        src: "method/core/rules/myrules-method-small.mdc",
+        dest: ".cursor/rules/myrules-method-small.mdc",
+        runtimes: BOTH,
+        kind: "cursor-rule",
+      },
+      {
+        src: "method/core/rules/myrules-method-small.mdc",
+        dest: ".claude/rules/myrules-method-small.md",
+        runtimes: BOTH,
+        kind: "claude-rule",
+      },
+      {
+        src: "method/core/rules/myrules-method-session.mdc",
+        dest: ".cursor/rules/myrules-method-session.mdc",
+        runtimes: BOTH,
+        kind: "cursor-rule",
+      },
+      {
+        src: "method/core/rules/myrules-method-session.mdc",
+        dest: ".claude/rules/myrules-method-session.md",
+        runtimes: BOTH,
+        kind: "claude-rule",
+      },
+      {
         src: "method/agent/rules/myrules-method-agent.mdc",
         dest: ".cursor/rules/myrules-method-agent.mdc",
         runtimes: ["agent"],

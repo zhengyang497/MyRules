@@ -64,6 +64,25 @@ test('sync without runtime marker exits non-zero', () => {
   assert.throws(() => syncCli.run(syncOpts(project, cache)), /Arrange the repo first|runtime/);
 });
 
+function methodMdc(project, name) {
+  return fs.readFileSync(path.join(project, '.cursor', 'rules', name), 'utf8');
+}
+
+function alwaysApplyTrue(mdc) {
+  const m = mdc.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  return m ? /^alwaysApply:\s*true\s*$/m.test(m[1]) : false;
+}
+
+function alwaysApplyMethodText(project) {
+  const dir = path.join(project, '.cursor', 'rules');
+  return fs
+    .readdirSync(dir)
+    .filter((f) => f.startsWith('myrules-method-') && f.endsWith('.mdc'))
+    .map((f) => fs.readFileSync(path.join(dir, f), 'utf8'))
+    .filter(alwaysApplyTrue)
+    .join('\n');
+}
+
 test('arrange agent writes runtime, empty ledger-less instance, agent rule, no coordinator ban', () => {
   const cache = makeCacheRepo();
   const project = tmp('myrules-rt-agent-');
@@ -73,10 +92,14 @@ test('arrange agent writes runtime, empty ledger-less instance, agent rule, no c
   assert.strictEqual(marker.runtime, 'agent');
   assert.ok(fs.existsSync(path.join(project, 'docs', '方法', 'myrules-项目工作法.md')));
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-agent.mdc')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-small.mdc')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-session.mdc')));
   assert.strictEqual(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-coordinator.mdc')), false);
-  const agentRule = fs.readFileSync(path.join(project, '.cursor', 'rules', 'myrules-method-agent.mdc'), 'utf8');
-  assert.match(agentRule, /可以写业务代码/);
+  const agentRule = methodMdc(project, 'myrules-method-agent.mdc');
+  assert.match(agentRule, /npm run board/);
   assert.doesNotMatch(agentRule, /禁止写业务代码/);
+  assert.match(methodMdc(project, 'myrules-method-session.mdc'), /可以写业务代码/);
+  assert.match(methodMdc(project, 'myrules-method-small.mdc'), /alwaysApply:\s*true/);
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-planner.md')));
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-implementer.md')));
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-reviewer.md')));
@@ -87,7 +110,7 @@ test('arrange agent writes runtime, empty ledger-less instance, agent rule, no c
   assert.ok(fs.existsSync(path.join(project, 'scripts', 'myrules-board.mjs')));
 });
 
-test('arrange project writes ledger, charter, coordinator rule, no agent write-code rule', () => {
+test('arrange project writes ledger, charter, coordinator rule, and small-edit alwaysApply', () => {
   const cache = makeCacheRepo();
   const project = tmp('myrules-rt-project-');
   arrange(project, cache, 'project');
@@ -97,9 +120,22 @@ test('arrange project writes ledger, charter, coordinator rule, no agent write-c
   assert.match(fs.readFileSync(path.join(project, 'ledger', 'STATUS.md'), 'utf8'), /探路/);
   assert.ok(fs.existsSync(path.join(project, 'docs', '方法', 'myrules-coordinator.md')));
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-coordinator.mdc')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-small.mdc')));
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-session.mdc')));
   assert.strictEqual(fs.existsSync(path.join(project, '.cursor', 'rules', 'myrules-method-agent.mdc')), false);
-  const coord = fs.readFileSync(path.join(project, '.cursor', 'rules', 'myrules-method-coordinator.mdc'), 'utf8');
+  const coord = methodMdc(project, 'myrules-method-coordinator.mdc');
+  assert.match(coord, /alwaysApply:\s*false/);
   assert.match(coord, /禁止写业务代码/);
+  const small = methodMdc(project, 'myrules-method-small.mdc');
+  assert.match(small, /alwaysApply:\s*true/);
+  assert.match(small, /当前主会话直接改/);
+  const session = methodMdc(project, 'myrules-method-session.mdc');
+  assert.match(session, /alwaysApply:\s*true/);
+  assert.match(session, /可以写业务代码/);
+  const alwaysApplyText = alwaysApplyMethodText(project);
+  assert.doesNotMatch(alwaysApplyText, /禁止写业务代码/);
+  assert.doesNotMatch(alwaysApplyText, /你是普通 Agent 主会话/);
+  assert.match(fs.readFileSync(path.join(project, 'docs', '方法', 'myrules-first-message.md'), 'utf8'), /琐碎改动/);
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-researcher.md')));
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-publisher.md')));
   assert.strictEqual(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-planner.md')), false);
@@ -139,7 +175,7 @@ test('sync updates hosted method doc after cache edit and leaves context alone',
   assert.strictEqual(fs.readFileSync(path.join(project, '.myrules-context.md'), 'utf8'), '当前目的：不动\n');
 });
 
-test('two alwaysApply method rules never coexist; switching runtime stale-cleans hosted files and keeps ledger', () => {
+test('switching runtime stale-cleans hosted files and keeps ledger', () => {
   const cache = makeCacheRepo();
   const project = tmp('myrules-rt-switch-');
   arrange(project, cache, 'agent');
