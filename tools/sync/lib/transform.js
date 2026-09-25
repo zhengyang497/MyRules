@@ -80,9 +80,10 @@ function yamlLine(key, value) {
 
 // Cursor 的 agent 加载器会把引号当成值的一部分（官方已知 bug，去引号是官方 workaround，
 // 影响 name/model 的解析），cursor 平台头栏一律出裸值；claude/opencode 解析正常，照旧带引号。
+// 去引号后 plain scalar 里不能再出现 ": "（YAML 会当映射键），按手改惯例把 ": " 折成 " - "。
 function yamlPlainLine(key, value) {
   if (typeof value === 'boolean') return `${key}: ${value}`;
-  if (typeof value === 'string') return `${key}: ${value.replace(/\r?\n/g, ' ')}`;
+  if (typeof value === 'string') return `${key}: ${value.replace(/\r?\n/g, ' ').replace(/: /g, ' - ')}`;
   return `${key}: ${value}`;
 }
 

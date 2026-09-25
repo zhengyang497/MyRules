@@ -88,6 +88,32 @@ test('transformForAgent builds Cursor agent with readonly and composed sections'
   assert.doesNotMatch(out, /permissionMode/);
 });
 
+test('cursor agent plain output folds ": " to " - " so the unquoted scalar stays valid YAML', () => {
+  const out = transform.transformForAgent({
+    roleMeta: { description: 'Plans work: clarify requirements, decompose tasks. Do not: skip tests.', readonly: true, model: 'inherit' },
+    roleId: 'planner',
+    agentName: 'myrules-planner',
+    userBodies: [],
+    projectBodies: [],
+    platform: 'cursor',
+  });
+  assert.match(out, /description: Plans work - clarify requirements, decompose tasks. Do not - skip tests\./);
+  assert.doesNotMatch(out, /description:.*: /);
+
+  // claude/dsh 带引号，原样保留冒号
+  for (const platform of ['claude', 'dsh']) {
+    const quoted = transform.transformForAgent({
+      roleMeta: { description: 'Plans work: clarify', readonly: true, model: 'inherit' },
+      roleId: 'planner',
+      agentName: 'myrules-planner',
+      userBodies: [],
+      projectBodies: [],
+      platform,
+    });
+    assert.match(quoted, /description: "Plans work: clarify"/, platform);
+  }
+});
+
 test('transformForAgent builds Claude agent with permissionMode plan for readonly roles', () => {
   const planner = transform.transformForAgent({
     roleMeta: { description: 'Plans work.', readonly: true, model: 'inherit' },
