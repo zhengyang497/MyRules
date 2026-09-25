@@ -19,10 +19,13 @@ function revParseHead(cwd) {
 function commitAndPush(cwd, message) {
   run(cwd, ['add', '-A']);
   const staged = run(cwd, ['status', '--porcelain']);
-  if (!staged) return { committed: false };
-  run(cwd, ['commit', '-m', message]);
-  run(cwd, ['push']);
-  return { committed: true };
+  const committed = Boolean(staged);
+  if (committed) run(cwd, ['commit', '-m', message]);
+  // 工作区干净但本地领先（例如手工 commit 后）也必须推 —— 否则 push.js 会
+  // 报 "Nothing to commit" 却把提交留在本地，造成缓存多机分叉。
+  // 无 remote 的本地仓库（测试夹具、纯本地缓存）跳过 push。
+  if (run(cwd, ['remote'])) run(cwd, ['push']);
+  return { committed };
 }
 
 module.exports = { isDirty, pullFastForward, revParseHead, commitAndPush };

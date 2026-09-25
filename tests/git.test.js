@@ -66,3 +66,16 @@ test('commitAndPush commits and pushes when there are changes', () => {
   assert.strictEqual(result.committed, true);
   assert.strictEqual(git.isDirty(clone), false);
 });
+
+test('commitAndPush pushes local commits even when the worktree is clean', () => {
+  const { bare, clone } = makeRepoWithRemote();
+  fs.writeFileSync(path.join(clone, 'ahead.txt'), 'ahead\n');
+  run(clone, ['add', '-A']);
+  run(clone, ['commit', '-m', 'manual commit']);
+
+  const result = git.commitAndPush(clone, 'noop message');
+  assert.strictEqual(result.committed, false);
+
+  const remoteHead = execFileSync('git', ['--git-dir', bare, 'rev-parse', 'main'], { encoding: 'utf8' }).trim();
+  assert.strictEqual(remoteHead, git.revParseHead(clone), 'local commit must reach the remote');
+});
