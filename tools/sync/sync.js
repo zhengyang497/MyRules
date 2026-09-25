@@ -19,6 +19,7 @@ const deployMethod = require('./lib/deploy-method');
 const projectSkill = require('./lib/project-skill');
 const dshInstructions = require('./lib/dsh-instructions');
 const dshRoles = require('./lib/dsh-roles-deploy');
+const exportLib = require('./lib/export');
 
 function parseArgs(argv) {
   const args = { dryRun: false, prune: false, project: null, all: false, force: false, updateSkills: false };
@@ -50,10 +51,30 @@ function reportSkillResults(results) {
   }
 }
 
-function reportDrifted(label, files) {
+function driftAdvice(file, projectRoot) {
+  const kind = exportLib.reverseKind(file);
+  if (kind === 'skill') {
+    return projectRoot
+      ? `reversible: node tools/sync/export.js --project "${projectRoot}" --apply (writes your edit back to ~/.myrules)`
+      : 'reversible: export.js --apply writes your edit back to ~/.myrules';
+  }
+  if (kind === 'rule') {
+    return projectRoot
+      ? `export lists the diff: node tools/sync/export.js --project "${projectRoot}" (copy it back by hand)`
+      : 'export lists the diff: node tools/sync/export.js (copy it back by hand)';
+  }
+  // hooks / method 短规则 / 脚本 / agent 角色文件：export 没有反查通道
+  return 'no export path: edit the source in ~/.myrules and push';
+}
+
+function reportDrifted(label, files, projectRoot) {
   if (!files.length) return;
-  console.warn(`Skipped ${files.length} locally-modified ${label} (run 'export' first, or pass --force):`);
-  files.forEach((f) => console.warn(`  ${f}`));
+  console.warn(`Skipped ${files.length} locally-modified ${label} (kept as-is, never overwritten; pass --force to accept the cache version):`);
+  for (const f of files) {
+    const rel = projectRoot ? path.relative(projectRoot, f).replace(/\\/g, '/') : '';
+    const shown = rel && !rel.startsWith('..') ? rel : f;
+    console.warn(`  ${shown} -> ${driftAdvice(f, projectRoot)}`);
+  }
 }
 
 function syncOne(cacheDir, projectRoot, opts, manifest) {
@@ -117,7 +138,7 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
     // dsh 用户目录按 homeDir 推导：测试传 fake homeDir 即可整体隔离
     dshUserDir: opts.dshUserDir || paths.getDshUserRulesDir(homeDir),
   });
-  reportDrifted('file(s)', result.drifted);
+  reportDrifted('file(s)', result.drifted, projectRoot);
 
   const ocConfigResult = opencodeConfig.deployProjectConfig(cacheDir, projectRoot, {
     manifest,
@@ -130,7 +151,7 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
     manifest,
     runtime,
   });
-  reportDrifted('agent file(s)', agentsResult.drifted);
+  reportDrifted('agent file(s)', agentsResult.drifted, projectRoot);
   if (agentsResult.missingAgents.length) {
     console.warn(
       `Skipped ${agentsResult.missingAgents.length} project rule(s) without agents frontmatter (add agents: to include in sub-agent bundles):`
@@ -144,7 +165,7 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
     manifest,
     ...(opts.claudeDir ? { claudeDir: opts.claudeDir } : {}),
   });
-  reportDrifted('hook file(s)', hooksResult.drifted);
+  reportDrifted('hook file(s)', hooksResult.drifted, projectRoot);
 
   const methodPrior = {};
   for (const [key, value] of Object.entries(current.deployedHashes || {})) {
@@ -157,7 +178,7 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
     runtime,
     instanceLanding: runtimeLib.hasInstanceLanding(projectRoot),
   });
-  reportDrifted('method file(s)', methodResult.drifted);
+  reportDrifted('method file(s)', methodResult.drifted, projectRoot);
   if (methodResult.gapFilled && methodResult.gapFilled.length) {
     console.log(`Mirrored ${methodResult.gapFilled.length} missing instance-owned method file(s) from a sibling platform copy:`);
     methodResult.gapFilled.forEach((f) => console.log(`  ${f}`));

@@ -238,3 +238,47 @@ test('upsertBlock force repairs a block only inside markers', () => {
   assert.ok(text.trimEnd().endsWith('# tail'));
   assert.doesNotMatch(text, /tampered/);
 });
+
+test('a hand-edited block is still skipped on the next run (never silently overwritten)', () => {
+  const rulesDir = makeRulesDir({ 'myrules-testing.md': '# Testing\n\n- v1' });
+  const agentsFile = tmpFile();
+  const first = dsh.deployProjectInstructions('/tmp/whatever', { manifest: fakeManifest, rulesDir, agentsFile });
+
+  fs.writeFileSync(
+    agentsFile,
+    fs.readFileSync(agentsFile, 'utf8').replace('## myrules: testing', '## myrules: tampered')
+  );
+  fs.writeFileSync(path.join(rulesDir, 'myrules-testing.md'), '# Testing\n\n- v2');
+
+  const second = dsh.deployProjectInstructions('/tmp/whatever', {
+    manifest: fakeManifest,
+    rulesDir,
+    agentsFile,
+    priorHash: first.blockHash,
+  });
+  assert.strictEqual(second.drifted, true);
+  assert.strictEqual(second.wrote, false);
+
+  // 旧实现在这一轮会把手改块覆盖掉：必须依旧 drift、依旧保留手改
+  const third = dsh.deployProjectInstructions('/tmp/whatever', {
+    manifest: fakeManifest,
+    rulesDir,
+    agentsFile,
+    priorHash: second.blockHash,
+  });
+  assert.strictEqual(third.drifted, true);
+  assert.strictEqual(third.wrote, false);
+  assert.match(fs.readFileSync(agentsFile, 'utf8'), /myrules: tampered/);
+});
+
+test('upsertBlock without a prior hash does not overwrite a differing existing block', () => {
+  const agentsFile = tmpFile();
+  // 模拟 state 丢失/老版本升级：块已存在且与新块不同
+  fs.writeFileSync(agentsFile, `${BEGIN}\n\n## myrules: testing\n\n# stale block\n${END}\n`);
+  const block = dsh.buildBlock({ begin: BEGIN, end: END, sections: [{ topic: 'testing', body: '# Testing' }] });
+
+  const result = dsh.upsertBlock(agentsFile, block, { begin: BEGIN, end: END });
+  assert.strictEqual(result.drifted, true);
+  assert.strictEqual(result.wrote, false);
+  assert.match(fs.readFileSync(agentsFile, 'utf8'), /# stale block/);
+});

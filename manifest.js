@@ -11,7 +11,8 @@ const ruleVariants = (name, dest, kind) =>
   }));
 
 // 项目级技能包：sync 时部署到各项目 .{cursor,claude,dsh}/skills/<name>/，
-// 与 project-method 同机制（tracked，手改会 drift 警告，不走 export 反向映射）。
+// 与 project-method 同机制（tracked，手改会在每次 sync drift 告警且绝不覆盖；
+// `export --apply` 可把项目里的改动反查写回缓存 method/skills/）。
 const skillPack = (name) =>
   ['.cursor', '.claude', '.dsh'].map((platform) => ({
     srcDir: `method/skills/${name}`,

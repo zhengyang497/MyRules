@@ -3,6 +3,56 @@ const path = require('node:path');
 const paths = require('./paths');
 const transform = require('./transform');
 const loadManifest = require('./load-manifest');
+const runtime = require('./runtime');
+
+// skillPack 部署的三个平台目录（相对项目根）
+const SKILL_PLATFORMS = ['.cursor', '.claude', '.dsh'];
+
+function posix(p) {
+  return String(p).replace(/\\/g, '/');
+}
+
+function walkFiles(root) {
+  const out = [];
+  const walk = (dir) => {
+    if (!fs.existsSync(dir)) return;
+    for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+      const abs = path.join(dir, ent.name);
+      if (ent.isDirectory()) walk(abs);
+      else if (ent.isFile()) out.push(abs);
+    }
+  };
+  walk(root);
+  return out;
+}
+
+// 「.cursor/skills」这样的项目相对路径（允许无尾斜杠）
+function isSkillsRoot(p) {
+  return /^\.(cursor|claude|dsh)\/skills(\/|$)/.test(posix(p));
+}
+
+// 从 manifest 的 dest/destDir 提取技能名（project-method 等）
+function skillNameOfTarget(target) {
+  const m = posix(target).match(/^\.(?:cursor|claude|dsh)\/skills\/([^/]+)/);
+  return m ? m[1] : null;
+}
+
+/**
+ * sync 告警分流用：这个被手改的文件有没有反向通道。
+ * - 'skill' → `export --apply` 可直接写回缓存源
+ * - 'rule'  → `export` 会列出差异（源带 frontmatter，人工回填）
+ * - null    → 没有反查通道（hooks、method 短规则、脚本、agent 角色文件等），
+ *   只能改 ~/.myrules 源后 push，或 --force 接受缓存版
+ */
+function reverseKind(absPath) {
+  const p = posix(absPath);
+  if (/\/\.(?:cursor|claude|dsh)\/skills\//.test(p)) return 'skill';
+  if (/\/rules\//.test(p)) {
+    const base = p.slice(p.lastIndexOf('/') + 1);
+    if (/^myrules-(?!method-|hook-).+\.mdc?$/.test(base)) return 'rule';
+  }
+  return null;
+}
 
 function diffFile(deployedFile, sourceFile, report) {
   if (!fs.existsSync(deployedFile)) return;
@@ -10,12 +60,72 @@ function diffFile(deployedFile, sourceFile, report) {
   if (deployedFile.endsWith('.mdc')) body = transform.stripCursorFrontmatter(body);
 
   if (!fs.existsSync(sourceFile)) {
-    report.sourceMissing.push({ deployedFile, sourceFile, body });
+    report.sourceMissing.push({ deployedFile, sourceFile, body, kind: 'rule' });
     return;
   }
   const sourceBody = transform.stripRuleFrontmatter(fs.readFileSync(sourceFile, 'utf8'));
   if (body.trim() !== sourceBody.trim()) {
-    report.toUpdate.push({ deployedFile, sourceFile, body });
+    report.toUpdate.push({ deployedFile, sourceFile, body, kind: 'rule' });
+  }
+}
+
+// 技能文件逐字对比：不剥任何 frontmatter —— SKILL.md 的 YAML 头、
+// 模板文件的任何字节都是源的一部分，反向写回时原样保留。
+function diffSkillFile(deployedFile, sourceFile, report) {
+  const body = fs.readFileSync(deployedFile, 'utf8');
+  if (!fs.existsSync(sourceFile)) {
+    report.sourceMissing.push({ deployedFile, sourceFile, body, kind: 'skill' });
+    return;
+  }
+  const sourceBody = fs.readFileSync(sourceFile, 'utf8');
+  if (body.trim() !== sourceBody.trim()) {
+    report.toUpdate.push({ deployedFile, sourceFile, body, kind: 'skill' });
+  }
+}
+
+// manifest 中落在 skills 目录里的单文件条目 → destRel 到缓存源的映射。
+// 目录条目（skillPack srcDir/destDir）天然满足 method/skills/<name>/<rel> 约定，
+// 不需要展开；单文件条目（如 project-method/templates/* 源自 method/core/templates/）必须显式登记。
+function skillSourceMap(manifest) {
+  const map = new Map();
+  for (const entry of (manifest.method && manifest.method.files) || []) {
+    if (entry.src && entry.dest && isSkillsRoot(entry.dest)) {
+      map.set(posix(entry.dest), posix(entry.src));
+    }
+  }
+  return map;
+}
+
+function diffSkills(cacheDir, projectRoot, manifest, report) {
+  const cacheSkillsDir = path.join(cacheDir, 'method', 'skills');
+  if (!fs.existsSync(cacheSkillsDir)) return;
+  const known = new Set(fs.readdirSync(cacheSkillsDir));
+
+  // instanceLanding 下 preserve 的技能归实例所有（sync 从不写入），同样不反查进缓存
+  const excluded = new Set();
+  if (runtime.hasInstanceLanding(projectRoot)) {
+    for (const entry of (manifest.method && manifest.method.files) || []) {
+      if (entry.instanceOwned !== 'preserve') continue;
+      const name = skillNameOfTarget(entry.destDir || entry.dest || '');
+      if (name) excluded.add(name);
+    }
+  }
+
+  const sourceMap = skillSourceMap(manifest);
+  for (const platform of SKILL_PLATFORMS) {
+    const skillsRoot = path.join(projectRoot, platform, 'skills');
+    if (!fs.existsSync(skillsRoot)) continue;
+    for (const name of fs.readdirSync(skillsRoot)) {
+      // 缓存 method/skills/ 里没有同名技能 → 项目自己的技能，不是托管产物，跳过
+      if (!known.has(name) || excluded.has(name)) continue;
+      const dir = path.join(skillsRoot, name);
+      if (!fs.statSync(dir).isDirectory()) continue;
+      for (const abs of walkFiles(dir)) {
+        const destRel = posix(path.relative(projectRoot, abs));
+        const sourceRel = sourceMap.get(destRel) || `method/skills/${name}/${posix(path.relative(dir, abs))}`;
+        diffSkillFile(abs, path.join(cacheDir, sourceRel), report);
+      }
+    }
   }
 }
 
@@ -61,7 +171,26 @@ function exportProject(cacheDir, projectRoot, opts = {}) {
     }
   }
 
+  // method 技能包：.{cursor,claude,dsh}/skills/<name>/ ↔ 缓存 method/skills/<name>/
+  diffSkills(cacheDir, projectRoot, manifest, report);
+
   return report;
 }
 
-module.exports = { exportProject };
+/**
+ * `--apply`：把报告中的 skill 差异写回缓存源（method/skills/…、method/core/templates/…）。
+ * 只写缓存，不碰项目文件；规则保持报告模式 —— 规则源带 agents/runtimes frontmatter，
+ * 回填需保留语义，由人（或模型）照报告手工完成。
+ */
+function applyReport(report) {
+  const applied = [];
+  for (const entry of [...report.toUpdate, ...report.sourceMissing]) {
+    if (entry.kind !== 'skill') continue;
+    fs.mkdirSync(path.dirname(entry.sourceFile), { recursive: true });
+    fs.writeFileSync(entry.sourceFile, entry.body);
+    applied.push(entry.sourceFile);
+  }
+  return applied;
+}
+
+module.exports = { exportProject, applyReport, reverseKind };

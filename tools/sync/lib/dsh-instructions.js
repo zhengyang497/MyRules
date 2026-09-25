@@ -58,7 +58,8 @@ function findBlockRange(text, begin, end) {
  * 把生成块写入指令文件的管理块区域；块外内容逐字保留。
  * - 块不存在：追加（空文件不加分隔行）
  * - 块存在且与新块相同：不写
- * - 块被手改（≠ priorHash 且 ≠ 新块）：drifted，跳过；force 才覆盖块内
+ * - 块被手改（偏离上次装配哈希；无基线时偏离新块）：drifted，跳过，
+ *   且每次装配都继续跳过（绝不静默覆盖）；force 才覆盖块内
  * - 块标记残缺（有 begin 无 end）：drifted，跳过（避免叠加出第二个块）
  */
 function upsertBlock(agentsFile, block, { begin, end, force = false, priorHash = null } = {}) {
@@ -83,13 +84,19 @@ function upsertBlock(agentsFile, block, { begin, end, force = false, priorHash =
     return { wrote: false, drifted: false, blockHash: currentHash };
   }
 
-  const handEdited = priorHash !== null && currentHash !== priorHash;
+  // 基线 = 上次装配的块哈希；无基线时以新块为基线（currentBlock ≠ block 已在上面
+  // 返回，走到这里必然判 drift —— 丢 state / 老版本升级时也不许静默覆盖）。
+  // drift 记录「期望块哈希」而不是磁盘上的手改哈希：下一次装配依旧判为 drift，
+  // 手改块在 --force 或改回之前永远不会被静默覆盖。
+  const desiredBlockHash = fsutil.hashContent(block);
+  const baseline = priorHash !== null ? priorHash : desiredBlockHash;
+  const handEdited = currentHash !== baseline;
   if (handEdited && !force) {
-    return { wrote: false, drifted: true, blockHash: currentHash };
+    return { wrote: false, drifted: true, blockHash: desiredBlockHash };
   }
 
   fs.writeFileSync(agentsFile, existing.slice(0, range.start) + block + existing.slice(range.end));
-  return { wrote: true, drifted: false, blockHash: fsutil.hashContent(block) };
+  return { wrote: true, drifted: false, blockHash: desiredBlockHash };
 }
 
 /**
