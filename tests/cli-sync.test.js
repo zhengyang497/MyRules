@@ -185,3 +185,21 @@ test('sync.run keeps AGENTS.md and CLAUDE.md byte-identical (protect list)', () 
   assert.strictEqual(fs.readFileSync(path.join(project, 'AGENTS.md'), 'utf8'), '# Agent notes — do not touch');
   assert.strictEqual(fs.readFileSync(path.join(project, 'CLAUDE.md'), 'utf8'), '# Project context — do not touch');
 });
+
+test('first sync assembles the user AGENTS block with user rules in the same run', () => {
+  const cache = makeCacheRepo();
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-dsh-userblock-'));
+  installSkill(project);
+  const opts = baseOpts(project, cache);
+
+  syncCli.run(opts);
+
+  // 用户规则由 syncOne 的 deployRules 写到 fakeHome/.dsh/rules/，
+  // 用户块必须在同一轮装配时就能看到它们（首跑不得只含 hook 散文）
+  const userAgents = path.join(opts.homeDir, '.dsh', 'AGENTS.md');
+  assert.ok(fs.existsSync(userAgents), 'missing ~/.dsh/AGENTS.md after first sync');
+  const text = fs.readFileSync(userAgents, 'utf8');
+  assert.match(text, /## myrules: user-behavior/);
+  assert.match(text, /## myrules: user-communication/);
+  assert.match(text, /<!-- myrules:end -->/);
+});

@@ -273,6 +273,17 @@ function run(opts) {
     hooksState.writeUserHooksState(homeDir, priorUserState);
   }
 
+  if (opts.all) {
+    for (const entry of registry.listRegisteredProjectEntries(homeDir)) {
+      syncOne(cacheDir, entry.path, { ...opts, knownRuntime: entry.runtime }, manifest);
+    }
+  } else {
+    const projectRoot = paths.getProjectRoot(opts.project);
+    syncOne(cacheDir, projectRoot, opts, manifest);
+  }
+
+  // 用户块必须在项目同步之后装配：~/.dsh/rules/ 的用户规则由 syncOne 的
+  // deployRules 写入，先装配会让首次 sync 的块漏掉全部用户规则。
   if (!opts.skipUserAgentsBlock) {
     const priorUserState = hooksState.readUserHooksState(homeDir);
     const userBlockResult = dshInstructions.deployUserInstructions({
@@ -294,15 +305,6 @@ function run(opts) {
       userBytes: userBlockResult.blockBytes,
     };
     hooksState.writeUserHooksState(homeDir, priorUserState);
-  }
-
-  if (opts.all) {
-    for (const entry of registry.listRegisteredProjectEntries(homeDir)) {
-      syncOne(cacheDir, entry.path, { ...opts, knownRuntime: entry.runtime }, manifest);
-    }
-  } else {
-    const projectRoot = paths.getProjectRoot(opts.project);
-    syncOne(cacheDir, projectRoot, opts, manifest);
   }
 }
 
