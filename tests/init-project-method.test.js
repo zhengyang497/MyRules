@@ -24,14 +24,16 @@ test('hosted method scripts and core docs exist in method/', () => {
   assert.match(skill, /\.myrules-runtime\.json/);
   assert.doesNotMatch(skill, /five execution flows/);
   assert.doesNotMatch(skill, /你若是主会话，就是 coordinator/);
-  assert.ok(fs.existsSync(path.join(REPO_ROOT, 'method', 'core', 'rules', 'myrules-method-small.mdc')));
-  assert.ok(fs.existsSync(path.join(REPO_ROOT, 'method', 'core', 'rules', 'myrules-method-session.mdc')));
+  assert.ok(fs.existsSync(path.join(REPO_ROOT, 'method', 'agent', 'rules', 'myrules-method-small.mdc')));
+  assert.ok(fs.existsSync(path.join(REPO_ROOT, 'method', 'agent', 'rules', 'myrules-method-session.mdc')));
+  assert.ok(fs.existsSync(path.join(REPO_ROOT, 'method', 'project', 'rules', 'myrules-method-small.mdc')));
+  assert.ok(fs.existsSync(path.join(REPO_ROOT, 'method', 'project', 'rules', 'myrules-method-session.mdc')));
   const coordRule = fs.readFileSync(
     path.join(REPO_ROOT, 'method', 'project', 'rules', 'myrules-method-coordinator.mdc'),
     'utf8'
   );
   assert.match(coordRule, /alwaysApply:\s*false/);
-  const small = fs.readFileSync(path.join(REPO_ROOT, 'method', 'core', 'rules', 'myrules-method-small.mdc'), 'utf8');
+  const small = fs.readFileSync(path.join(REPO_ROOT, 'method', 'project', 'rules', 'myrules-method-small.mdc'), 'utf8');
   assert.match(small, /alwaysApply:\s*true/);
   assert.match(small, /当前主会话直接改/);
   assert.match(skill, /琐碎改动却派了 Task\/子代理或开了卡/);
@@ -56,7 +58,7 @@ test('hosted method scripts and core docs exist in method/', () => {
   assert.match(charter, /闸门只认/);
   assert.match(charter, /STATUS/);
   const session = fs.readFileSync(
-    path.join(REPO_ROOT, 'method', 'core', 'rules', 'myrules-method-session.mdc'),
+    path.join(REPO_ROOT, 'method', 'project', 'rules', 'myrules-method-session.mdc'),
     'utf8'
   );
   assert.match(session, /产品/);
@@ -115,4 +117,30 @@ test('bundled board-server chrome matches wiki fonts, sizes, and frame', () => {
   assert.ok(src.includes('improvements-board-node'));
   assert.ok(src.includes('/health'));
   assert.ok(src.includes('左侧树切换 · 选择会记住'));
+});
+
+test('seat arbitration is project-only and agent variants stay a line-subset of project', () => {
+  const read = (runtime, name) =>
+    fs.readFileSync(path.join(REPO_ROOT, 'method', runtime, 'rules', name), 'utf8');
+  const agentSession = read('agent', 'myrules-method-session.mdc');
+  const projectSession = read('project', 'myrules-method-session.mdc');
+  const agentSmall = read('agent', 'myrules-method-small.mdc');
+  const projectSmall = read('project', 'myrules-method-small.mdc');
+
+  assert.doesNotMatch(agentSession, /coordinator|first-message|经理/);
+  assert.doesNotMatch(agentSmall, /coordinator|first-message|经理/);
+  assert.match(projectSession, /默认你不是 coordinator/);
+  assert.match(projectSession, /若你是 coordinator：按章程派工/);
+  assert.match(projectSmall, /例外：若你是/);
+
+  // 共享正文防漂移：agent 版每一行都必须原样出现在 project 版里
+  for (const [agent, project, name] of [
+    [agentSession, projectSession, 'session'],
+    [agentSmall, projectSmall, 'small'],
+  ]) {
+    for (const line of agent.split(/\r?\n/)) {
+      if (!line.trim()) continue;
+      assert.ok(project.includes(line), `project ${name} variant drifted from agent variant: ${line}`);
+    }
+  }
 });

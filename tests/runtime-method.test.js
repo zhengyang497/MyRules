@@ -100,6 +100,9 @@ test('arrange agent writes runtime, empty ledger-less instance, agent rule, no c
   assert.doesNotMatch(agentRule, /禁止写业务代码/);
   assert.match(methodMdc(project, 'myrules-method-session.mdc'), /可以写业务代码/);
   assert.match(methodMdc(project, 'myrules-method-small.mdc'), /alwaysApply:\s*true/);
+  // 座位仲裁句只进 project 版：agent 部署里不得出现 coordinator/first-message
+  assert.doesNotMatch(methodMdc(project, 'myrules-method-session.mdc'), /coordinator|first-message/);
+  assert.doesNotMatch(methodMdc(project, 'myrules-method-small.mdc'), /coordinator|first-message/);
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-planner.md')));
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-implementer.md')));
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-reviewer.md')));

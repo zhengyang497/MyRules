@@ -1,5 +1,15 @@
 const BOTH = ['agent', 'project'];
 
+// 短规则按运行时分叉成两个源文件：座位仲裁句（coordinator）只进 project 版。
+// 两个源文件部署到同一个目的路径，各自只在自己的运行时生效。
+const ruleVariants = (name, dest, kind) =>
+  ['agent', 'project'].map((runtime) => ({
+    src: `method/${runtime}/rules/${name}`,
+    dest,
+    runtimes: [runtime],
+    kind,
+  }));
+
 module.exports = {
   version: 1,
   repo: "https://github.com/zhengyang497/MyRules.git",
@@ -106,30 +116,10 @@ module.exports = {
       { src: "method/project/coordinator.md", dest: "docs/方法/myrules-coordinator.md", runtimes: ["project"] },
       { src: "method/project/ledger.schema.md", dest: "docs/方法/myrules-ledger.schema.md", runtimes: ["project"] },
       { src: "method/project/FIRST-MESSAGE.md", dest: "docs/方法/myrules-first-message.md", runtimes: ["project"] },
-      {
-        src: "method/core/rules/myrules-method-small.mdc",
-        dest: ".cursor/rules/myrules-method-small.mdc",
-        runtimes: BOTH,
-        kind: "cursor-rule",
-      },
-      {
-        src: "method/core/rules/myrules-method-small.mdc",
-        dest: ".claude/rules/myrules-method-small.md",
-        runtimes: BOTH,
-        kind: "claude-rule",
-      },
-      {
-        src: "method/core/rules/myrules-method-session.mdc",
-        dest: ".cursor/rules/myrules-method-session.mdc",
-        runtimes: BOTH,
-        kind: "cursor-rule",
-      },
-      {
-        src: "method/core/rules/myrules-method-session.mdc",
-        dest: ".claude/rules/myrules-method-session.md",
-        runtimes: BOTH,
-        kind: "claude-rule",
-      },
+      ...ruleVariants("myrules-method-small.mdc", ".cursor/rules/myrules-method-small.mdc", "cursor-rule"),
+      ...ruleVariants("myrules-method-small.mdc", ".claude/rules/myrules-method-small.md", "claude-rule"),
+      ...ruleVariants("myrules-method-session.mdc", ".cursor/rules/myrules-method-session.mdc", "cursor-rule"),
+      ...ruleVariants("myrules-method-session.mdc", ".claude/rules/myrules-method-session.md", "claude-rule"),
       {
         src: "method/agent/rules/myrules-method-agent.mdc",
         dest: ".cursor/rules/myrules-method-agent.mdc",
@@ -156,18 +146,8 @@ module.exports = {
         runtimes: ["project"],
         kind: "claude-rule",
       },
-      {
-        src: "method/core/rules/myrules-method-small.mdc",
-        dest: ".dsh/rules/myrules-method-small.md",
-        runtimes: BOTH,
-        kind: "dsh-rule",
-      },
-      {
-        src: "method/core/rules/myrules-method-session.mdc",
-        dest: ".dsh/rules/myrules-method-session.md",
-        runtimes: BOTH,
-        kind: "dsh-rule",
-      },
+      ...ruleVariants("myrules-method-small.mdc", ".dsh/rules/myrules-method-small.md", "dsh-rule"),
+      ...ruleVariants("myrules-method-session.mdc", ".dsh/rules/myrules-method-session.md", "dsh-rule"),
       {
         src: "method/agent/rules/myrules-method-agent.mdc",
         dest: ".dsh/rules/myrules-method-agent.md",
