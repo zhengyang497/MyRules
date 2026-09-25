@@ -22,3 +22,20 @@ test('loadManifest falls back to bundled manifest when cache has no manifest.js'
   assert.strictEqual(manifest.managedPrefix, 'myrules-');
   assert.match(manifest.repo, /MyRules/);
 });
+
+test('every method.files source path exists in the repo', () => {
+  const manifest = require('../manifest.js');
+  const root = path.join(__dirname, '..');
+  let checked = 0;
+  for (const entry of manifest.method.files) {
+    if (entry.src) {
+      checked++;
+      assert.ok(fs.existsSync(path.join(root, entry.src)), `missing method src: ${entry.src}`);
+    }
+    if (entry.srcDir) {
+      checked++;
+      assert.ok(fs.existsSync(path.join(root, entry.srcDir)), `missing method srcDir: ${entry.srcDir}`);
+    }
+  }
+  assert.ok(checked > 0, 'manifest.method.files should declare sources');
+});

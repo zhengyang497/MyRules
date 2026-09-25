@@ -103,6 +103,10 @@ test('arrange agent writes runtime, empty ledger-less instance, agent rule, no c
   // 座位仲裁句只进 project 版：agent 部署里不得出现 coordinator/first-message
   assert.doesNotMatch(methodMdc(project, 'myrules-method-session.mdc'), /coordinator|first-message/);
   assert.doesNotMatch(methodMdc(project, 'myrules-method-small.mdc'), /coordinator|first-message/);
+  // 项目级技能包：四个写作技能随 arrange 部署到三平台
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'skills', 'cohesion-coupling-diagnosis', 'SKILL.md')));
+  assert.ok(fs.existsSync(path.join(project, '.claude', 'skills', 'writing-for-the-reader', 'SKILL.md')));
+  assert.ok(fs.existsSync(path.join(project, '.dsh', 'skills', 'rewriting-model-letter-rules', 'SKILL.md')));
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-planner.md')));
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-implementer.md')));
   assert.ok(fs.existsSync(path.join(project, '.cursor', 'agents', 'myrules-reviewer.md')));
@@ -137,6 +141,7 @@ test('arrange project writes ledger, charter, coordinator rule, and small-edit a
   assert.match(session, /可以写业务代码/);
   assert.match(session, /产品/);
   assert.match(session, /first-message/);
+  assert.ok(fs.existsSync(path.join(project, '.cursor', 'skills', 'cohesion-coupling-diagnosis', 'SKILL.md')));
   const alwaysApplyText = alwaysApplyMethodText(project);
   assert.doesNotMatch(alwaysApplyText, /禁止写业务代码/);
   assert.doesNotMatch(alwaysApplyText, /你是普通 Agent 主会话/);

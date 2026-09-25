@@ -10,6 +10,15 @@ const ruleVariants = (name, dest, kind) =>
     kind,
   }));
 
+// 项目级技能包：sync 时部署到各项目 .{cursor,claude,dsh}/skills/<name>/，
+// 与 project-method 同机制（tracked，手改会 drift 警告，不走 export 反向映射）。
+const skillPack = (name) =>
+  ['.cursor', '.claude', '.dsh'].map((platform) => ({
+    srcDir: `method/skills/${name}`,
+    destDir: `${platform}/skills/${name}`,
+    runtimes: BOTH,
+  }));
+
 module.exports = {
   version: 1,
   repo: "https://github.com/zhengyang497/MyRules.git",
@@ -173,6 +182,10 @@ module.exports = {
       { src: "method/core/templates/设计目标.md", dest: ".dsh/skills/project-method/templates/设计目标.md", runtimes: BOTH, instanceOwned: "preserve" },
       { src: "method/core/templates/检查清单.md", dest: ".dsh/skills/project-method/templates/检查清单.md", runtimes: BOTH, instanceOwned: "preserve" },
       { src: "method/core/templates/看板卡片.md", dest: ".dsh/skills/project-method/templates/看板卡片.md", runtimes: BOTH, instanceOwned: "preserve" },
+      ...skillPack("cohesion-coupling-diagnosis"),
+      ...skillPack("rewriting-model-letter-form"),
+      ...skillPack("rewriting-model-letter-rules"),
+      ...skillPack("writing-for-the-reader"),
       { src: "method/agent/scripts/myrules-board.mjs", dest: "scripts/myrules-board.mjs", runtimes: BOTH, instanceOwned: "drop" },
       { src: "method/agent/scripts/myrules-board-io.mjs", dest: "scripts/myrules-board-io.mjs", runtimes: BOTH, instanceOwned: "drop" },
       { src: "method/agent/scripts/myrules-board-server.mjs", dest: "scripts/myrules-board-server.mjs", runtimes: BOTH, instanceOwned: "drop" },
