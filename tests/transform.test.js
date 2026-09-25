@@ -79,10 +79,10 @@ test('transformForAgent builds Cursor agent with readonly and composed sections'
     projectBodies: [{ topic: 'planning', body: '# Planning\n\n- clarify' }],
     platform: 'cursor',
   });
-  assert.match(out, /^---\nname: "myrules-planner"/);
-  assert.match(out, /description: "Plans work\."/);
+  assert.match(out, /^---\nname: myrules-planner/);
+  assert.match(out, /description: Plans work\./);
   assert.match(out, /readonly: true/);
-  assert.match(out, /model: "inherit"/);
+  assert.match(out, /model: inherit/);
   assert.match(out, /## user: preferences/);
   assert.match(out, /## project: planning/);
   assert.doesNotMatch(out, /permissionMode/);
@@ -159,8 +159,11 @@ test('transformForAgent cursor and claude outputs retain name and model fields a
       projectBodies: [],
       platform,
     });
-    assert.match(out, /name: "myrules-reviewer"/, `${platform} missing name field`);
-    assert.match(out, /model: "inherit"/, `${platform} missing model field`);
+    // cursor 的加载器把引号当值的一部分，头栏出裸值；claude 照旧带引号
+    const nameLine = platform === 'cursor' ? 'name: myrules-reviewer' : 'name: "myrules-reviewer"';
+    const modelLine = platform === 'cursor' ? 'model: inherit' : 'model: "inherit"';
+    assert.match(out, new RegExp(nameLine), `${platform} missing name field`);
+    assert.match(out, new RegExp(modelLine), `${platform} missing model field`);
   }
 });
 
@@ -212,7 +215,7 @@ test('transformForAgent cursor, claude, and opencode outputs are unchanged by th
   const cursor = transform.transformForAgent({ ...base, platform: 'cursor' });
   assert.strictEqual(
     cursor,
-    '---\nname: "myrules-planner"\ndescription: "Plans work."\nmodel: "inherit"\nreadonly: true\n---\n\n## user: preferences\n\n- be concise'
+    '---\nname: myrules-planner\ndescription: Plans work.\nmodel: inherit\nreadonly: true\n---\n\n## user: preferences\n\n- be concise'
   );
   const claude = transform.transformForAgent({ ...base, platform: 'claude' });
   assert.strictEqual(

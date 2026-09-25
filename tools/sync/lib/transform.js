@@ -78,15 +78,23 @@ function yamlLine(key, value) {
   return `${key}: ${value}`;
 }
 
+// Cursor 的 agent 加载器会把引号当成值的一部分（官方已知 bug，去引号是官方 workaround，
+// 影响 name/model 的解析），cursor 平台头栏一律出裸值；claude/opencode 解析正常，照旧带引号。
+function yamlPlainLine(key, value) {
+  if (typeof value === 'boolean') return `${key}: ${value}`;
+  if (typeof value === 'string') return `${key}: ${value.replace(/\r?\n/g, ' ')}`;
+  return `${key}: ${value}`;
+}
+
 function transformForAgent({ roleMeta, roleId, agentName, userBodies, projectBodies, platform }) {
   const body = composeAgentBody(userBodies, projectBodies);
   const lines = ['---'];
 
   if (platform === 'cursor') {
-    lines.push(yamlLine('name', agentName));
-    lines.push(yamlLine('description', roleMeta.description));
-    lines.push(yamlLine('model', roleMeta.model || 'inherit'));
-    lines.push(yamlLine('readonly', roleMeta.readonly === true));
+    lines.push(yamlPlainLine('name', agentName));
+    lines.push(yamlPlainLine('description', roleMeta.description));
+    lines.push(yamlPlainLine('model', roleMeta.model || 'inherit'));
+    lines.push(yamlPlainLine('readonly', roleMeta.readonly === true));
   } else if (platform === 'claude') {
     lines.push(yamlLine('name', agentName));
     lines.push(yamlLine('description', roleMeta.description));

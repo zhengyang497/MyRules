@@ -152,7 +152,7 @@ test('deployAgents cursor and claude outputs stay byte-identical after dsh addit
   deployAgents.deployAgents(cache, project, { force: false, priorAgentHashes: {}, manifest });
 
   const planner = fs.readFileSync(path.join(project, '.cursor', 'agents', 'myrules-planner.md'), 'utf8');
-  assert.ok(planner.startsWith('---\nname: "myrules-planner"\ndescription: "Plans work: clarify requirements, decompose tasks, define scope. Use before implementation."\nmodel: "inherit"\nreadonly: true\n---\n'), planner.slice(0, 120));
+  assert.ok(planner.startsWith('---\nname: myrules-planner\ndescription: Plans work: clarify requirements, decompose tasks, define scope. Use before implementation.\nmodel: inherit\nreadonly: true\n---\n'), planner.slice(0, 120));
   const claude = fs.readFileSync(path.join(project, '.claude', 'agents', 'myrules-reviewer.md'), 'utf8');
   assert.match(claude, /^---\nname: "myrules-reviewer"\ndescription: "Skeptical reviewer: verify claims, run tests, report pass\/fail\. Read-only\."\nmodel: "inherit"\npermissionMode: "plan"\n---\n/);
 });
@@ -183,7 +183,7 @@ test('deployAgents cursor and claude outputs are byte-identical to pre-opencode 
   // Cursor planner agent
   assert.strictEqual(
     fs.readFileSync(path.join(project, '.cursor', 'agents', 'myrules-planner.md'), 'utf8'),
-    '---\nname: "myrules-planner"\ndescription: "Plans work."\nmodel: "inherit"\nreadonly: true\n---\n\n## user: preferences\n\n# Preferences\n\n- be concise\n\n## project: planning\n\n# Planning\n\n- clarify first'
+    '---\nname: myrules-planner\ndescription: Plans work.\nmodel: inherit\nreadonly: true\n---\n\n## user: preferences\n\n# Preferences\n\n- be concise\n\n## project: planning\n\n# Planning\n\n- clarify first'
   );
   // Claude planner agent
   assert.strictEqual(
