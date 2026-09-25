@@ -432,6 +432,53 @@ test('instanceLanding --force still does not overwrite the skill', () => {
   );
 });
 
+test('instanceLanding gap-fills a missing platform copy from the instance sibling', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-landing-gapfill-');
+  installSkill(project);
+  write(
+    path.join(project, '.myrules-runtime.json'),
+    `${JSON.stringify({ runtime: 'agent', instanceLanding: true }, null, 2)}\n`
+  );
+  write(path.join(project, '.cursor', 'skills', 'project-method', 'SKILL.md'), '# CUSTOM_SKILL\n');
+  write(path.join(project, '.cursor', 'skills', 'project-method', 'templates', '设计目标.md'), '# CUSTOM_TEMPLATE\n');
+
+  syncCli.run(syncOpts(project, cache));
+
+  // dsh 缺失 → 镜像实例自己的 cursor 拷贝（内容=实例版，不是缓存版）
+  assert.strictEqual(
+    fs.readFileSync(path.join(project, '.dsh', 'skills', 'project-method', 'SKILL.md'), 'utf8'),
+    '# CUSTOM_SKILL\n'
+  );
+  assert.strictEqual(
+    fs.readFileSync(path.join(project, '.dsh', 'skills', 'project-method', 'templates', '设计目标.md'), 'utf8'),
+    '# CUSTOM_TEMPLATE\n'
+  );
+  // 已存在的永不覆盖
+  fs.writeFileSync(path.join(project, '.dsh', 'skills', 'project-method', 'SKILL.md'), '# EDITED_DSH\n');
+  syncCli.run(syncOpts(project, cache));
+  assert.strictEqual(
+    fs.readFileSync(path.join(project, '.dsh', 'skills', 'project-method', 'SKILL.md'), 'utf8'),
+    '# EDITED_DSH\n'
+  );
+});
+
+test('instanceLanding respects deletion when every platform copy is gone', () => {
+  const cache = makeCacheRepo();
+  const project = tmp('myrules-rt-landing-deleted-');
+  installSkill(project);
+  write(
+    path.join(project, '.myrules-runtime.json'),
+    `${JSON.stringify({ runtime: 'agent', instanceLanding: true }, null, 2)}\n`
+  );
+
+  syncCli.run(syncOpts(project, cache));
+
+  assert.strictEqual(fs.existsSync(path.join(project, '.cursor', 'skills', 'project-method')), false);
+  assert.strictEqual(fs.existsSync(path.join(project, '.claude', 'skills', 'project-method')), false);
+  assert.strictEqual(fs.existsSync(path.join(project, '.dsh', 'skills', 'project-method')), false);
+});
+
 test('instanceLanding force arrange leaves custom board scripts in package.json', () => {
   const cache = makeCacheRepo();
   const project = tmp('myrules-rt-landing-pkg-');

@@ -51,6 +51,51 @@ function collectPreserveRel(entry, preserveRels) {
   if (entry.dest) preserveRels.add(posixRel(entry.dest));
 }
 
+function preserveGroupKey(entry) {
+  return entry.srcDir ? `dir:${posixRel(entry.srcDir)}` : `file:${posixRel(entry.src)}`;
+}
+
+function preserveGroupsOf(manifest) {
+  const groups = new Map();
+  for (const entry of (manifest.method && manifest.method.files) || []) {
+    if (entry.instanceOwned !== 'preserve') continue;
+    const key = preserveGroupKey(entry);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(entry);
+  }
+  return groups;
+}
+
+function copyPath(src, dest) {
+  const st = fs.statSync(src);
+  if (st.isDirectory()) {
+    fs.mkdirSync(dest, { recursive: true });
+    for (const name of fs.readdirSync(src)) copyPath(path.join(src, name), path.join(dest, name));
+    return;
+  }
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.copyFileSync(src, dest);
+}
+
+/**
+ * preserve 跨平台补缺（instanceLanding 语义）：
+ * - 目标平台缺失 → 从实例自己的姊妹拷贝镜像一份（内容=实例版，不是缓存版）；
+ * - 已存在的永不覆盖；
+ * - 各平台全被实例删光 → 尊重删除，不重建。
+ * 返回被补缺的路径，或 null（无需动作）。
+ */
+function gapFillPreserve(entry, siblings, projectRoot) {
+  const mine = path.join(projectRoot, posixRel(entry.destDir || entry.dest));
+  if (fs.existsSync(mine)) return null;
+  for (const sibling of siblings) {
+    const theirs = path.join(projectRoot, posixRel(sibling.destDir || sibling.dest));
+    if (theirs === mine || !fs.existsSync(theirs)) continue;
+    copyPath(theirs, mine);
+    return mine;
+  }
+  return null;
+}
+
 function unlinkIfFile(filePath) {
   if (!fs.existsSync(filePath)) return false;
   const st = fs.lstatSync(filePath);
@@ -82,12 +127,16 @@ function deployMethod(cacheDir, projectRoot, opts = {}) {
   const tracker = drift.createTracker({ force, priorHashes });
   const preserveRels = new Set();
   const dropped = [];
+  const gapFilled = [];
+  const preserveGroups = preserveGroupsOf(manifest);
 
   for (const entry of entriesForRuntime(manifest, runtime)) {
     const owned = instanceLanding ? entry.instanceOwned : null;
 
     if (owned === 'preserve') {
       collectPreserveRel(entry, preserveRels);
+      const filled = gapFillPreserve(entry, preserveGroups.get(preserveGroupKey(entry)) || [], projectRoot);
+      if (filled) gapFilled.push(filled);
       continue;
     }
 
@@ -122,7 +171,7 @@ function deployMethod(cacheDir, projectRoot, opts = {}) {
   }
 
   const staleRemoved = staleMethodCleanup(priorHashes, tracker.hashes, projectRoot, preserveRels);
-  return { hashes: tracker.hashes, drifted: tracker.drifted, staleRemoved, dropped, preserveRels: [...preserveRels] };
+  return { hashes: tracker.hashes, drifted: tracker.drifted, staleRemoved, dropped, gapFilled, preserveRels: [...preserveRels] };
 }
 
-module.exports = { deployMethod, entriesForRuntime, staleMethodCleanup, relIsPreserved };
+module.exports = { deployMethod, entriesForRuntime, staleMethodCleanup, relIsPreserved, gapFillPreserve, preserveGroupsOf };

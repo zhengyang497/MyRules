@@ -158,6 +158,10 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
     instanceLanding: runtimeLib.hasInstanceLanding(projectRoot),
   });
   reportDrifted('method file(s)', methodResult.drifted);
+  if (methodResult.gapFilled && methodResult.gapFilled.length) {
+    console.log(`Mirrored ${methodResult.gapFilled.length} missing instance-owned method file(s) from a sibling platform copy:`);
+    methodResult.gapFilled.forEach((f) => console.log(`  ${f}`));
+  }
 
   // dsh：角色委派脚手架 + AGENTS.md 管理块（块装配在 method 之后，含 method 短规则）
   dshRoles.deployRoleToolRows(projectRoot, { manifest, cacheDir, runtime });
