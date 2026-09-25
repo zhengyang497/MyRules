@@ -17,15 +17,20 @@ function buildBlock(manifest, runtime = 'agent') {
     `!.claude/rules/${prefix}method-*`,
     `.opencode/rules/${prefix}*`,
     `!.opencode/rules/${prefix}method-*`,
+    `.dsh/rules/${prefix}*`,
+    `!.dsh/rules/${prefix}method-*`,
   ];
   if (runtime !== 'project') {
     lines.push(
       `.cursor/agents/${agentPrefix}*`,
       `.claude/agents/${agentPrefix}*`,
-      `.opencode/agents/${agentPrefix}*`
+      `.opencode/agents/${agentPrefix}*`,
+      `.dsh/agents/${agentPrefix}*`
     );
   }
   lines.push(`.cursor/hooks/${prefix}*`, `${backupDir}/`, `${stateFile}`);
+  const dshRows = manifest.dsh?.rolesRowsFile;
+  if (dshRows) lines.push(String(dshRows).replace(/\\/g, '/'));
   return lines.join('\n');
 }
 

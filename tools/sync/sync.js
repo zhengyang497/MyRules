@@ -17,6 +17,8 @@ const opencodeConfig = require('./lib/opencode-config-deploy');
 const runtimeLib = require('./lib/runtime');
 const deployMethod = require('./lib/deploy-method');
 const projectSkill = require('./lib/project-skill');
+const dshInstructions = require('./lib/dsh-instructions');
+const dshRoles = require('./lib/dsh-roles-deploy');
 
 function parseArgs(argv) {
   const args = { dryRun: false, prune: false, project: null, all: false, force: false, updateSkills: false };
@@ -59,6 +61,16 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
   if (!opts.skipPrepare) {
     // Skill check first so bootstrap failures stay distinguishable from missing runtime.
     if (!projectSkill.isProjectSkillInstalled(projectRoot, manifest)) {
+      // 迁移自愈：老项目已有旧平台 skill、仅缺新平台目标时尽力补齐（缓存缺源也不致命）
+      if (projectSkill.isLegacySkillInstalled(projectRoot, manifest)) {
+        try {
+          projectSkill.ensureProjectSkill(projectRoot, cacheDir, manifest);
+        } catch {
+          /* 缓存缺 skill 源时保持现状：旧平台已装即可继续 */
+        }
+      }
+    }
+    if (!projectSkill.isProjectSkillInstalled(projectRoot, manifest) && !projectSkill.isLegacySkillInstalled(projectRoot, manifest)) {
       throw new Error(
         'MyRules skill is not installed in this project. Import it from GitHub first ' +
           `(run install-skill.js, or ask the Agent to install MyRules from ${manifest.repo}).`
@@ -102,6 +114,8 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
     runtime,
     ...(opts.claudeUserDir ? { claudeUserDir: opts.claudeUserDir } : {}),
     ...(opts.opencodeUserDir ? { opencodeUserDir: opts.opencodeUserDir } : {}),
+    // dsh 用户目录按 homeDir 推导：测试传 fake homeDir 即可整体隔离
+    dshUserDir: opts.dshUserDir || paths.getDshUserRulesDir(homeDir),
   });
   reportDrifted('file(s)', result.drifted);
 
@@ -145,6 +159,26 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
   });
   reportDrifted('method file(s)', methodResult.drifted);
 
+  // dsh：角色委派脚手架 + AGENTS.md 管理块（块装配在 method 之后，含 method 短规则）
+  dshRoles.deployRoleToolRows(projectRoot, { manifest, cacheDir, runtime });
+  const dshBlockResult = dshInstructions.deployProjectInstructions(projectRoot, {
+    manifest,
+    cacheDir,
+    force: opts.force,
+    priorHash: (current.deployedDshBlocks && current.deployedDshBlocks.projectHash) || null,
+    extraSections: dshRoles.buildExtraSections({
+      agentPrefix: (manifest.agents && manifest.agents.prefix) || manifest.managedPrefix,
+      roles: runtimeLib.rolesForRuntime(manifest, runtime),
+    }),
+  });
+  if (dshBlockResult.drifted) {
+    console.warn('Skipped locally-modified MyRules block in AGENTS.local.md (edit .dsh/rules/ instead, or pass --force):');
+    console.warn(`  ${dshBlockResult.agentsFile}`);
+  }
+  const userBlockBytes = ((hooksState.readUserHooksState(homeDir).deployedDshBlocks || {}).userBytes) || 0;
+  const dshBudget = dshInstructions.budgetWarning(userBlockBytes, dshBlockResult.blockBytes);
+  if (dshBudget) console.warn(dshBudget);
+
   let lastPruneAt = current.lastPruneAt;
   if (opts.prune) {
     if (!current.pruneDryRunDone || current.legacyRulesFingerprint !== fp) {
@@ -167,6 +201,10 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
     deployedOpencodeInstructions: {
       project: ocConfigResult.instructions,
       user: (current.deployedOpencodeInstructions && current.deployedOpencodeInstructions.user) || [],
+    },
+    deployedDshBlocks: {
+      projectHash: dshBlockResult.blockHash,
+      userHash: (current.deployedDshBlocks && current.deployedDshBlocks.userHash) || null,
     },
     runtime,
   });
@@ -196,6 +234,10 @@ function run(opts) {
     const skillResults = skills.syncSkills(cacheDir, {
       cursorSkillsDir: paths.getCursorUserSkillsDir(homeDir),
       claudeSkillsDir: paths.getClaudeUserSkillsDir(homeDir),
+      dshSkillsDir:
+        manifest.platforms && manifest.platforms.includes('dsh')
+          ? opts.dshSkillsDir || paths.getDshUserSkillsDir(homeDir)
+          : undefined,
       update: Boolean(opts.updateSkills),
     });
     reportSkillResults(skillResults);
@@ -228,6 +270,29 @@ function run(opts) {
     });
     priorUserState.deployedOpencodeInstructions = priorUserState.deployedOpencodeInstructions || {};
     priorUserState.deployedOpencodeInstructions.user = ocUserResult.instructions;
+    hooksState.writeUserHooksState(homeDir, priorUserState);
+  }
+
+  if (!opts.skipUserAgentsBlock) {
+    const priorUserState = hooksState.readUserHooksState(homeDir);
+    const userBlockResult = dshInstructions.deployUserInstructions({
+      manifest,
+      cacheDir,
+      homeDir,
+      force: opts.force,
+      priorHash: (priorUserState.deployedDshBlocks || {}).userHash || null,
+    });
+    if (userBlockResult.drifted) {
+      console.warn('Skipped locally-modified MyRules block in ~/.dsh/AGENTS.md (edit ~/.dsh/rules/ instead, or pass --force):');
+      console.warn(`  ${userBlockResult.agentsFile}`);
+    }
+    const userBudget = dshInstructions.budgetWarning(userBlockResult.blockBytes, 0);
+    if (userBudget) console.warn(userBudget);
+    priorUserState.deployedDshBlocks = {
+      ...(priorUserState.deployedDshBlocks || {}),
+      userHash: userBlockResult.blockHash,
+      userBytes: userBlockResult.blockBytes,
+    };
     hooksState.writeUserHooksState(homeDir, priorUserState);
   }
 

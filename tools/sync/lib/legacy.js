@@ -52,6 +52,16 @@ function scanLegacy(projectRoot, managedPrefix, manifest = {}) {
     }
   }
 
+  const dshDir = paths.getDshProjectRulesDir(projectRoot);
+  if (fs.existsSync(dshDir)) {
+    for (const f of fs.readdirSync(dshDir)) {
+      const full = path.join(dshDir, f);
+      if (fs.statSync(full).isFile() && f.endsWith('.md') && !f.startsWith(managedPrefix)) {
+        found.push(full);
+      }
+    }
+  }
+
   const legacyCursorrules = path.join(projectRoot, '.cursorrules');
   if (fs.existsSync(legacyCursorrules)) found.push(legacyCursorrules);
 

@@ -17,7 +17,7 @@ description: >
 | Term | Meaning |
 |------|---------|
 | **cache** | `~/.myrules/` — rules, hooks, method pack, `skills-manifest.js` |
-| **artifacts** | Generated `myrules-*` files in projects / `~/.cursor/` — do not edit |
+| **artifacts** | Generated `myrules-*` files in projects / `~/.cursor/` (and `.dsh/` for dsh) — do not edit |
 | **bootstrap** | Install this skill before sync/arrange phrases work |
 | **runtime** | `agent` or `project` in `.myrules-runtime.json`. Optional `instanceLanding: true` keeps a repo's own paths/commands |
 
@@ -47,11 +47,11 @@ User says **「从 GitHub 安装 MyRules skill」**, **「导入 MyRules」**, o
 
 1. Shallow-clone `https://github.com/zhengyang497/MyRules.git` (or use an existing checkout).
 2. Run `node "<clone>/tools/sync/install-skill.js" --project "<workspace>"`.
-3. Remind the user to **commit** `.cursor/skills/myrules/` (and `.claude/skills/myrules/` if present).
+3. Remind the user to **commit** `.cursor/skills/myrules/` (and `.claude/skills/myrules/` / `.dsh/skills/myrules/` if present).
 
 Do **not** deploy the method pack in this step.
 
-**Done when:** `.cursor/skills/myrules/SKILL.md` exists (and `.claude/skills/myrules/SKILL.md` when Claude is in scope).
+**Done when:** `.cursor/skills/myrules/SKILL.md` exists (and `.claude/skills/myrules/SKILL.md` when Claude is in scope, `.dsh/skills/myrules/SKILL.md` when dsh is in scope).
 
 ## Sync
 

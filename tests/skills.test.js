@@ -48,6 +48,33 @@ test('syncSkills clones a missing skill into both target dirs', () => {
   assert.ok(!results.some((r) => r.name === 'myrules'));
 });
 
+test('syncSkills also clones into dshSkillsDir when provided', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-skills-'));
+  const bare = makeFixtureSkillRepo(root);
+  const cache = makeCacheWithManifest(bare);
+  const cursorSkillsDir = path.join(root, 'cursor-skills');
+  const claudeSkillsDir = path.join(root, 'claude-skills');
+  const dshSkillsDir = path.join(root, 'dsh-skills');
+
+  const results = skills.syncSkills(cache, { cursorSkillsDir, claudeSkillsDir, dshSkillsDir });
+
+  assert.ok(fs.existsSync(path.join(dshSkillsDir, 'fixture-skill', 'SKILL.md')));
+  assert.ok(results.some((r) => r.target.startsWith(dshSkillsDir) && r.ok));
+});
+
+test('syncSkills without dshSkillsDir keeps only the two legacy targets', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-skills-'));
+  const bare = makeFixtureSkillRepo(root);
+  const cache = makeCacheWithManifest(bare);
+  const cursorSkillsDir = path.join(root, 'cursor-skills');
+  const claudeSkillsDir = path.join(root, 'claude-skills');
+
+  const results = skills.syncSkills(cache, { cursorSkillsDir, claudeSkillsDir });
+
+  assert.strictEqual(results.length, 2);
+  assert.strictEqual(fs.existsSync(path.join(root, 'dsh-skills')), false);
+});
+
 test('syncSkills updates an already-cloned skill to the latest commit', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-skills-'));
   const bare = makeFixtureSkillRepo(root);

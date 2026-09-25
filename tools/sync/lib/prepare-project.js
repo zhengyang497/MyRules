@@ -5,7 +5,8 @@ const projectSkill = require('./project-skill');
 const state = require('./state');
 
 function prepareProject(projectRoot, cacheDir, manifest, opts = {}) {
-  if (!projectSkill.isProjectSkillInstalled(projectRoot, manifest)) {
+  // 与 sync.js 同一门禁：完全未安装才拒绝；老项目缺新平台目标（如 .dsh/skills）放行
+  if (!projectSkill.isProjectSkillInstalled(projectRoot, manifest) && !projectSkill.isLegacySkillInstalled(projectRoot, manifest)) {
     throw new Error(
       'MyRules skill is not installed in this project. Import it from GitHub first ' +
         `(run install-skill.js, or ask the Agent to install MyRules from ${manifest.repo}).`

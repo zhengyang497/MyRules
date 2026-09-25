@@ -86,6 +86,46 @@ test('mergeHooksJson includes optional matcher/timeout/failClosed only when set'
   ]);
 });
 
+test('deployProjectHooks mirrors hook prose into .dsh/rules for the AGENTS.md block', () => {
+  const cache = makeCache();
+  const project = makeProject();
+  hooksDeploy.deployProjectHooks(cache, project, { manifest: fakeManifest, priorState: {} });
+
+  const dshProse = path.join(project, '.dsh', 'rules', 'myrules-hook-session-start-context.md');
+  assert.ok(fs.existsSync(dshProse), `missing ${dshProse}`);
+  assert.match(fs.readFileSync(dshProse, 'utf8'), /Hook: session-start-context/);
+});
+
+test('deployProjectHooks removes stale dsh prose files together with the claude ones', () => {
+  const cache = makeCache();
+  const project = makeProject();
+  const first = hooksDeploy.deployProjectHooks(cache, project, { manifest: fakeManifest, priorState: {} });
+  fs.rmSync(path.join(cache, 'hooks', 'project', 'session-start-context.js'));
+
+  hooksDeploy.deployProjectHooks(cache, project, {
+    manifest: fakeManifest,
+    priorState: { deployedHooks: first.deployedHooks, deployedHashes: first.deployedHashes },
+  });
+
+  assert.strictEqual(fs.existsSync(path.join(project, '.dsh', 'rules', 'myrules-hook-session-start-context.md')), false);
+  assert.strictEqual(fs.existsSync(path.join(project, '.claude', 'rules', 'myrules-hook-session-start-context.md')), false);
+});
+
+test('deployUserHooks writes dsh prose under the given homeDir', () => {
+  const cache = makeCache();
+  fs.writeFileSync(
+    path.join(cache, 'hooks', 'user', 'session-log.js'),
+    "module.exports.meta = { event: 'sessionEnd', description: 'log session' };\n" +
+      'module.exports.handle = function handle() { return {}; };\n'
+  );
+  const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-hooks-home-'));
+  hooksDeploy.deployUserHooks(cache, { manifest: fakeManifest, homeDir, priorState: {} });
+
+  const dshProse = path.join(homeDir, '.dsh', 'rules', 'myrules-hook-session-log.md');
+  assert.ok(fs.existsSync(dshProse), `missing ${dshProse}`);
+  assert.match(fs.readFileSync(dshProse, 'utf8'), /Hook: session-log/);
+});
+
 test('mergeHooksJson appends multiple currentHooks for the same event', () => {
   const result = mergeHooksJson(null, {}, [
     { event: 'sessionStart', command: 'node .cursor/hooks/myrules-a.js' },

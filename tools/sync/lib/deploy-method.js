@@ -33,6 +33,9 @@ function entriesForRuntime(manifest, runtime) {
 function contentForEntry(srcPath, kind) {
   const raw = fs.readFileSync(srcPath, 'utf8');
   if (kind === 'claude-rule') return transform.stripCursorFrontmatter(raw);
+  // dsh-rule：剥掉 Cursor frontmatter。用 CRLF 兼容的 stripRuleFrontmatter
+  // （stripCursorFrontmatter 的正则只认 \n；method 源文件是 CRLF）。
+  if (kind === 'dsh-rule') return transform.stripRuleFrontmatter(raw);
   return raw;
 }
 

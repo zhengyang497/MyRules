@@ -57,7 +57,7 @@ function readJsonIfExists(file) {
   }
 }
 
-function deployHooks({ sourceDir, scriptsDir, configFile, commandDirPosix, claudeDir, hookInfix, force, priorState }) {
+function deployHooks({ sourceDir, scriptsDir, configFile, commandDirPosix, claudeDir, dshDir, hookInfix, force, priorState }) {
   const sources = hooksLib.loadHookSources(sourceDir);
   const previousNames = Object.keys(priorState.deployedHooks || {});
 
@@ -70,6 +70,7 @@ function deployHooks({ sourceDir, scriptsDir, configFile, commandDirPosix, claud
 
   fsutil.ensureDir(scriptsDir);
   fsutil.ensureDir(claudeDir);
+  fsutil.ensureDir(dshDir);
 
   const currentHooks = sources.map((s) => ({
     name: s.name,
@@ -91,13 +92,19 @@ function deployHooks({ sourceDir, scriptsDir, configFile, commandDirPosix, claud
 
     const claudeTarget = path.join(claudeDir, `myrules-${hookInfix}${s.name}.md`);
     tracker.writeTracked(claudeTarget, transform.transformHookForClaude(s.meta, s.name), `claude:${s.name}`);
+
+    // dsh：桥不支持的事件也靠这份散文惯例兜底（进 AGENTS.md 管理块）
+    const dshTarget = path.join(dshDir, `myrules-${hookInfix}${s.name}.md`);
+    tracker.writeTracked(dshTarget, transform.transformHookForClaude(s.meta, s.name), `dsh:${s.name}`);
   }
 
   for (const staleName of staleNames) {
     const scriptTarget = path.join(scriptsDir, `myrules-${staleName}.js`);
     const claudeTarget = path.join(claudeDir, `myrules-${hookInfix}${staleName}.md`);
+    const dshTarget = path.join(dshDir, `myrules-${hookInfix}${staleName}.md`);
     if (fs.existsSync(scriptTarget)) fs.unlinkSync(scriptTarget);
     if (fs.existsSync(claudeTarget)) fs.unlinkSync(claudeTarget);
+    if (fs.existsSync(dshTarget)) fs.unlinkSync(dshTarget);
   }
 
   const previousCommandsByEvent = {};
@@ -127,6 +134,7 @@ function deployProjectHooks(cacheDir, projectRoot, opts = {}) {
     configFile: opts.configFile || paths.getCursorProjectHooksConfig(projectRoot),
     commandDirPosix: '.cursor/hooks',
     claudeDir: opts.claudeDir || paths.getClaudeProjectRulesDir(projectRoot),
+    dshDir: opts.dshDir || paths.getDshProjectRulesDir(projectRoot),
     hookInfix: manifest.claude.hookInfix,
     force: opts.force || false,
     priorState: opts.priorState || {},
@@ -142,6 +150,7 @@ function deployUserHooks(cacheDir, opts = {}) {
     configFile: opts.configFile || paths.getCursorUserHooksConfig(homeDir),
     commandDirPosix: 'hooks',
     claudeDir: opts.claudeDir || paths.getClaudeUserRulesDir(homeDir),
+    dshDir: opts.dshDir || paths.getDshUserRulesDir(homeDir),
     hookInfix: manifest.claude.hookInfix,
     force: opts.force || false,
     priorState: opts.priorState || {},

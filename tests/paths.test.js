@@ -92,3 +92,43 @@ test('getOpencodeAgentsDir joins project root and .opencode/agents', () => {
   const result = paths.getOpencodeAgentsDir('/tmp/myproject');
   assert.strictEqual(result, path.join('/tmp/myproject', '.opencode', 'agents'));
 });
+
+test('getDshProjectRulesDir joins project root and .dsh/rules', () => {
+  const result = paths.getDshProjectRulesDir('/tmp/myproject');
+  assert.strictEqual(result, path.join('/tmp/myproject', '.dsh', 'rules'));
+});
+
+test('getDshUserRulesDir joins homeDir and .dsh/rules', () => {
+  const result = paths.getDshUserRulesDir('/home/alice');
+  assert.strictEqual(result, path.join('/home/alice', '.dsh', 'rules'));
+});
+
+test('getDshProjectSkillsDir joins project root and .dsh/skills', () => {
+  const result = paths.getDshProjectSkillsDir('/tmp/myproject');
+  assert.strictEqual(result, path.join('/tmp/myproject', '.dsh', 'skills'));
+});
+
+test('getDshUserSkillsDir joins homeDir and .dsh/skills', () => {
+  const result = paths.getDshUserSkillsDir('/home/alice');
+  assert.strictEqual(result, path.join('/home/alice', '.dsh', 'skills'));
+});
+
+test('getDshProjectAgentsDir joins project root and .dsh/agents', () => {
+  const result = paths.getDshProjectAgentsDir('/tmp/myproject');
+  assert.strictEqual(result, path.join('/tmp/myproject', '.dsh', 'agents'));
+});
+
+test('getDshProjectAgentsFile returns AGENTS.local.md at project root (AGENTS.md stays protected)', () => {
+  const result = paths.getDshProjectAgentsFile('/tmp/myproject');
+  assert.strictEqual(result, path.join('/tmp/myproject', 'AGENTS.local.md'));
+});
+
+test('getDshUserAgentsFile joins homeDir and .dsh/AGENTS.md', () => {
+  const result = paths.getDshUserAgentsFile('/home/alice');
+  assert.strictEqual(result, path.join('/home/alice', '.dsh', 'AGENTS.md'));
+});
+
+test('getDshUserConfigDir joins homeDir and .dsh', () => {
+  const result = paths.getDshUserConfigDir('/home/alice');
+  assert.strictEqual(result, path.join('/home/alice', '.dsh'));
+});

@@ -11,17 +11,19 @@ function listMdFiles(dir) {
 }
 
 function isRuleStateKey(key) {
-  if (key.startsWith('script:') || key.startsWith('claude:')) return false;
+  if (key.startsWith('script:') || key.startsWith('claude:') || key.startsWith('dsh:')) return false;
   return (
     key.startsWith('.cursor/rules/') ||
     key.startsWith('.claude/rules/') ||
     key.startsWith('.opencode/rules/') ||
+    key.startsWith('.dsh/rules/') ||
     key.startsWith('~claude-user~/') ||
-    key.startsWith('~opencode-user~/')
+    key.startsWith('~opencode-user~/') ||
+    key.startsWith('~dsh-user~/')
   );
 }
 
-function staleRuleCleanup(priorHashes, newHashes, projectRoot, claudeUserDir, opencodeUserDir) {
+function staleRuleCleanup(priorHashes, newHashes, projectRoot, claudeUserDir, opencodeUserDir, dshUserDir) {
   const removed = [];
   for (const key of Object.keys(priorHashes || {})) {
     if (!isRuleStateKey(key) || key in newHashes) continue;
@@ -29,7 +31,9 @@ function staleRuleCleanup(priorHashes, newHashes, projectRoot, claudeUserDir, op
       ? path.join(claudeUserDir, key.slice('~claude-user~/'.length))
       : key.startsWith('~opencode-user~/')
         ? path.join(opencodeUserDir, key.slice('~opencode-user~/'.length))
-        : path.join(projectRoot, key);
+        : key.startsWith('~dsh-user~/')
+          ? path.join(dshUserDir, key.slice('~dsh-user~/'.length))
+          : path.join(projectRoot, key);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
       removed.push(filePath);
@@ -46,15 +50,19 @@ function deployRules(cacheDir, projectRoot, opts = {}) {
   const priorHashes = opts.priorHashes || {};
   const claudeUserDir = opts.claudeUserDir || paths.getClaudeUserRulesDir();
   const opencodeUserDir = opts.opencodeUserDir || paths.getOpencodeUserRulesDir();
+  const dshUserDir = opts.dshUserDir || paths.getDshUserRulesDir();
   const cursorDir = paths.getCursorRulesDir(projectRoot);
   const claudeProjDir = paths.getClaudeProjectRulesDir(projectRoot);
   const opencodeProjDir = paths.getOpencodeProjectRulesDir(projectRoot);
+  const dshProjDir = paths.getDshProjectRulesDir(projectRoot);
 
   fs.mkdirSync(cursorDir, { recursive: true });
   fs.mkdirSync(claudeProjDir, { recursive: true });
   fs.mkdirSync(claudeUserDir, { recursive: true });
   fs.mkdirSync(opencodeProjDir, { recursive: true });
   fs.mkdirSync(opencodeUserDir, { recursive: true });
+  fs.mkdirSync(dshProjDir, { recursive: true });
+  fs.mkdirSync(dshUserDir, { recursive: true });
 
   const tracker = drift.createTracker({ force, priorHashes });
 
@@ -94,6 +102,12 @@ function deployRules(cacheDir, projectRoot, opts = {}) {
         const opencodeProjTarget = path.join(opencodeProjDir, opencodeProjName);
         const opencodeProjStateKey = path.posix.join('.opencode/rules', opencodeProjName);
         tracker.writeTracked(opencodeProjTarget, transform.transformForOpencode(body), opencodeProjStateKey);
+
+        // dsh 用户规则只进用户目录（~/.dsh/AGENTS.md 管理块常驻，无需复制进项目）
+        const dshName = `${userPrefix}${topic}.md`;
+        const dshTarget = path.join(dshUserDir, dshName);
+        const dshStateKey = `~dsh-user~/${dshName}`;
+        tracker.writeTracked(dshTarget, transform.transformForDsh(body), dshStateKey);
       } else {
         const claudeName = `${prefix}${topic}.md`;
         const claudeTarget = path.join(claudeProjDir, claudeName);
@@ -104,11 +118,16 @@ function deployRules(cacheDir, projectRoot, opts = {}) {
         const opencodeTarget = path.join(opencodeProjDir, opencodeName);
         const opencodeStateKey = path.posix.join('.opencode/rules', opencodeName);
         tracker.writeTracked(opencodeTarget, transform.transformForOpencode(body), opencodeStateKey);
+
+        const dshName = `${prefix}${topic}.md`;
+        const dshTarget = path.join(dshProjDir, dshName);
+        const dshStateKey = path.posix.join('.dsh/rules', dshName);
+        tracker.writeTracked(dshTarget, transform.transformForDsh(body), dshStateKey);
       }
     }
   }
 
-  const staleRemoved = staleRuleCleanup(priorHashes, tracker.hashes, projectRoot, claudeUserDir, opencodeUserDir);
+  const staleRemoved = staleRuleCleanup(priorHashes, tracker.hashes, projectRoot, claudeUserDir, opencodeUserDir, dshUserDir);
 
   return { hashes: tracker.hashes, drifted: tracker.drifted, staleRemoved };
 }

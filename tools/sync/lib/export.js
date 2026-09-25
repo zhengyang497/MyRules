@@ -29,8 +29,10 @@ function exportProject(cacheDir, projectRoot, opts = {}) {
     claudeProjDir = paths.getClaudeProjectRulesDir(projectRoot),
     claudeUserDir = paths.getClaudeUserRulesDir(),
     opencodeUserDir = paths.getOpencodeUserRulesDir(),
+    dshUserDir = paths.getDshUserRulesDir(),
   } = opts;
   const opencodeProjDir = paths.getOpencodeProjectRulesDir(projectRoot);
+  const dshProjDir = paths.getDshProjectRulesDir(projectRoot);
 
   const scans = [
     { dir: cursorDir, ext: manifest.cursor.extension },
@@ -38,12 +40,17 @@ function exportProject(cacheDir, projectRoot, opts = {}) {
     { dir: claudeUserDir, ext: manifest.claude.extension },
     { dir: opencodeProjDir, ext: manifest.opencode.extension },
     { dir: opencodeUserDir, ext: manifest.opencode.extension },
+    { dir: dshProjDir, ext: (manifest.dsh && manifest.dsh.extension) || '.md' },
+    { dir: dshUserDir, ext: (manifest.dsh && manifest.dsh.extension) || '.md' },
   ];
 
   for (const { dir, ext } of scans) {
     if (!fs.existsSync(dir)) continue;
     for (const f of fs.readdirSync(dir)) {
       if (!f.startsWith(prefix) || !f.endsWith(ext)) continue;
+      // method 短规则与 hook 散文不是 rules/<category>/ 的产物：
+      // 它们由 method/hooks 渠道部署，没有对应主题源文件，不参与反查
+      if (f.startsWith(`${prefix}method-`) || f.startsWith(`${prefix}${manifest.claude.hookInfix || 'hook-'}`)) continue;
       const deployedFile = path.join(dir, f);
       const isUser = f.startsWith(userPrefix);
       const withoutExt = path.basename(f, ext);

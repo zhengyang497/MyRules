@@ -90,6 +90,39 @@ function getOpencodeAgentsDir(projectRoot) {
   return path.join(projectRoot, '.opencode', 'agents');
 }
 
+function getDshUserConfigDir(homeDir = os.homedir()) {
+  return path.join(homeDir, '.dsh');
+}
+
+function getDshProjectRulesDir(projectRoot) {
+  return path.join(projectRoot, '.dsh', 'rules');
+}
+
+function getDshUserRulesDir(homeDir = os.homedir()) {
+  return path.join(homeDir, '.dsh', 'rules');
+}
+
+function getDshProjectSkillsDir(projectRoot) {
+  return path.join(projectRoot, '.dsh', 'skills');
+}
+
+function getDshUserSkillsDir(homeDir = os.homedir()) {
+  return path.join(homeDir, '.dsh', 'skills');
+}
+
+function getDshProjectAgentsDir(projectRoot) {
+  return path.join(projectRoot, '.dsh', 'agents');
+}
+
+function getDshProjectAgentsFile(projectRoot) {
+  // dsh 的项目级本地覆盖层（AGENTS.md/CLAUDE.md 是保护文件，不碰）
+  return path.join(projectRoot, 'AGENTS.local.md');
+}
+
+function getDshUserAgentsFile(homeDir = os.homedir()) {
+  return path.join(homeDir, '.dsh', 'AGENTS.md');
+}
+
 module.exports = {
   getCacheDir,
   getProjectRoot,
@@ -113,4 +146,12 @@ module.exports = {
   getOpencodeProjectConfigFile,
   getOpencodeUserConfigFile,
   getOpencodeAgentsDir,
+  getDshUserConfigDir,
+  getDshProjectRulesDir,
+  getDshUserRulesDir,
+  getDshProjectSkillsDir,
+  getDshUserSkillsDir,
+  getDshProjectAgentsDir,
+  getDshProjectAgentsFile,
+  getDshUserAgentsFile,
 };

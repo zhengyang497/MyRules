@@ -149,3 +149,39 @@ test('sync.run deploys opencode.json with instructions glob and writes it to sta
   const s = state.readState(project);
   assert.deepStrictEqual(s.deployedOpencodeInstructions.project, ['.opencode/rules/myrules-*.md']);
 });
+
+test('sync.run deploys dsh artifacts and the AGENTS.local.md managed block idempotently', () => {
+  const cache = makeCacheRepo();
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-dsh-sync-project-'));
+  installSkill(project);
+
+  syncCli.run(baseOpts(project, cache));
+
+  assert.ok(fs.existsSync(path.join(project, '.dsh', 'rules', 'myrules-testing.md')));
+  assert.ok(fs.existsSync(path.join(project, '.dsh', 'agents', 'myrules-planner.md')));
+  assert.ok(fs.existsSync(path.join(project, '.dsh', 'roles-tool-rows.yml')));
+  const agentsLocal = fs.readFileSync(path.join(project, 'AGENTS.local.md'), 'utf8');
+  assert.match(agentsLocal, /<!-- myrules:begin -->/);
+  assert.match(agentsLocal, /## myrules: testing/);
+  assert.match(agentsLocal, /角色工具表/);
+  assert.match(agentsLocal, /组队规则/);
+
+  const s = state.readState(project);
+  assert.ok(s.deployedDshBlocks.projectHash);
+
+  syncCli.run(baseOpts(project, cache));
+  assert.strictEqual(fs.readFileSync(path.join(project, 'AGENTS.local.md'), 'utf8'), agentsLocal);
+});
+
+test('sync.run keeps AGENTS.md and CLAUDE.md byte-identical (protect list)', () => {
+  const cache = makeCacheRepo();
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'myrules-dsh-protect-'));
+  fs.writeFileSync(path.join(project, 'AGENTS.md'), '# Agent notes — do not touch');
+  fs.writeFileSync(path.join(project, 'CLAUDE.md'), '# Project context — do not touch');
+  installSkill(project);
+
+  syncCli.run(baseOpts(project, cache));
+
+  assert.strictEqual(fs.readFileSync(path.join(project, 'AGENTS.md'), 'utf8'), '# Agent notes — do not touch');
+  assert.strictEqual(fs.readFileSync(path.join(project, 'CLAUDE.md'), 'utf8'), '# Project context — do not touch');
+});

@@ -15,6 +15,7 @@ const DEFAULT_STATE = {
   deployedAgentHashes: {},
   deployedHooks: {},
   deployedOpencodeInstructions: { project: [], user: [] },
+  deployedDshBlocks: { projectHash: null, userHash: null },
 };
 
 function readState(projectRoot) {

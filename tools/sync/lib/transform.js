@@ -52,6 +52,10 @@ function transformForOpencode(body) {
   return body;
 }
 
+function transformForDsh(body) {
+  return body;
+}
+
 function stripCursorFrontmatter(content) {
   const match = content.match(/^---\n[\s\S]*?\n---\n\n([\s\S]*)$/);
   return match ? match[1] : content;
@@ -97,6 +101,11 @@ function transformForAgent({ roleMeta, roleId, agentName, userBodies, projectBod
       lines.push('  edit: deny');
       lines.push('  bash: deny');
     }
+  } else if (platform === 'dsh') {
+    // dsh 角色文件：frontmatter 供 patch 生成器/组队规则读取，正文即 persona 来源
+    lines.push(yamlLine('name', agentName));
+    lines.push(yamlLine('description', roleMeta.description));
+    lines.push(`readonly: ${roleMeta.readonly === true}`);
   }
 
   lines.push('---', '', body);
@@ -117,6 +126,7 @@ module.exports = {
   transformForCursor,
   transformForClaude,
   transformForOpencode,
+  transformForDsh,
   stripCursorFrontmatter,
   transformHookForClaude,
   parseRuleFrontmatter,

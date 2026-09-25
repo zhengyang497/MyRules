@@ -29,3 +29,13 @@ per-project sync state.
 `init.js` is a deprecated alias for `sync.js` — use `sync.js` only.
 Copy-once project-method templates are **gone**. Method files are hosted and
 updated by sync.
+
+## dsh (DeepSeek Harness) notes
+
+No new commands. The same `sync` deploys dsh artifacts (`.dsh/rules/`,
+`.dsh/agents/`, `.dsh/skills/`, `.dsh/roles-tool-rows.yml`) and maintains the
+MyRules managed block in `AGENTS.local.md` (project) / `~/.dsh/AGENTS.md` (user).
+Named delegation tools (`subagent_<role>`) are opt-in: copy rows from
+`.dsh/roles-tool-rows.yml` into `$DSH_HOME/profiles/<profile>/cordis.patch.yml`
+after making `@deepseek-ai/dsh-tool-subagent` available in that profile — sync
+never edits profiles.

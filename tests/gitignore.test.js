@@ -72,6 +72,20 @@ test('buildBlock includes opencode rules and agents', () => {
   assert.match(block, /\.opencode\/agents\/myrules-\*/);
 });
 
+test('buildBlock includes dsh rules, agents, and the roles scaffold', () => {
+  const block = gitignore.buildBlock(manifest);
+  assert.match(block, /\.dsh\/rules\/myrules-\*/);
+  assert.match(block, /!\.dsh\/rules\/myrules-method-\*/);
+  assert.match(block, /\.dsh\/agents\/myrules-\*/);
+  assert.match(block, /\.dsh\/roles-tool-rows\.yml/);
+});
+
+test('buildBlock omits dsh agent patterns for project runtime', () => {
+  const block = gitignore.buildBlock(manifest, 'project');
+  assert.doesNotMatch(block, /^\.dsh\/agents\/myrules-\*$/m);
+  assert.match(block, /\.dsh\/rules\/myrules-\*/);
+});
+
 test('ensureGitignore refreshes a stale block that is missing opencode patterns', () => {
   const project = tmpProject();
   const stale = [

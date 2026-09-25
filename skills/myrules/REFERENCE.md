@@ -13,11 +13,11 @@ Vocabulary (used throughout this skill):
 
 | Kind | Edit in cache | Deployed artifacts | Notes |
 |------|---------------|-------------------|-------|
-| Rules | `rules/user/*.md`, `rules/project/*.md` | `.cursor/rules/myrules-*.mdc`, `.claude/rules/myrules-*.md` | One topic per file; `project/` may use `agents:` / `runtimes:` frontmatter |
-| Sub-agents | same sources (filtered by `agents:` and runtime) | `.cursor/agents/myrules-*.md`, `.claude/agents/myrules-*.md` | **One-way deploy** — edit cache sources, not agent files; `export` does not reverse-merge agents. agent runtime: planner/implementer/reviewer. project runtime: researcher/implementer/reviewer/publisher |
-| Hooks | `hooks/user/*.js`, `hooks/project/*.js` | Cursor: `hooks.json` + `myrules-*.js`; Claude: `myrules-hook-*.md` convention docs only | See seed hooks `session-log`, `session-start-context`, `subagent-start-worker` |
-| External skills | `skills-manifest.js` | `~/.cursor/skills/<name>/`, `~/.claude/skills/<name>/` | Never list `myrules` here; optional `path` extracts a monorepo subfolder |
-| Bootstrap skill | `skills/myrules/*` | Project `.cursor/skills/myrules/` (and `.claude/skills/myrules/`) | Via `install-skill.js` |
+| Rules | `rules/user/*.md`, `rules/project/*.md` | `.cursor/rules/myrules-*.mdc`, `.claude/rules/myrules-*.md`, `.opencode/rules/myrules-*.md`, `.dsh/rules/myrules-*.md` + `AGENTS.local.md` 管理块 | One topic per file; `project/` may use `agents:` / `runtimes:` frontmatter |
+| Sub-agents | same sources (filtered by `agents:` and runtime) | `.cursor/agents/myrules-*.md`, `.claude/agents/myrules-*.md`, `.dsh/agents/myrules-*.md`（角色文件）+ `.dsh/roles-tool-rows.yml`（委派工具脚手架） | **One-way deploy** — edit cache sources, not agent files; `export` does not reverse-merge agents. agent runtime: planner/implementer/reviewer. project runtime: researcher/implementer/reviewer/publisher |
+| Hooks | `hooks/user/*.js`, `hooks/project/*.js` | Cursor: `hooks.json` + `myrules-*.js`; Claude: `myrules-hook-*.md` convention docs only; dsh: `.dsh/rules/myrules-hook-*.md`（进管理块） | See seed hooks `session-log`, `session-start-context`, `subagent-start-worker` |
+| External skills | `skills-manifest.js` | `~/.cursor/skills/<name>/`, `~/.claude/skills/<name>/`, `~/.dsh/skills/<name>/` | Never list `myrules` here; optional `path` extracts a monorepo subfolder |
+| Bootstrap skill | `skills/myrules/*` | Project `.cursor/skills/myrules/` (and `.claude/skills/myrules/`, `.dsh/skills/myrules/`) | Via `install-skill.js` |
 | Method pack | `method/core/`, `method/agent/`, `method/project/` | `docs/方法/myrules-*.md`, `.cursor/rules/myrules-method-*.mdc`, `.cursor/skills/project-method/`, `scripts/myrules-board*.mjs` | **Hosted.** Updated every sync unless `instanceLanding` (see below). Core small-edit + session rules are alwaysApply on both runtimes; coordinator short rule is project-only with `alwaysApply: false`. Instance files (goals, ledger notes, `.myrules-context.md`) are never overwritten. Copy-once templates are abolished |
 | Rule authoring (meta) | `rules/meta/*.md` | *(not deployed)* | Read in cache before editing `user/` / `project/` |
 | Project context | — | `<project>/.myrules-context.md` | Instance; published purpose. Not overwritten by sync |
@@ -99,11 +99,25 @@ those repos still get the full hosted pack.
 - **Hooks:** Cursor runs deployed `.js` scripts via `hooks.json`. Claude receives
   generated markdown convention files only — follow them manually; no automatic
   trigger.
+- **dsh (DeepSeek Harness):** dsh has no rules directory — it only loads the
+  `AGENTS.md`/`CLAUDE.md` chain. MyRules therefore: (1) archives per-topic rule
+  files in `.dsh/rules/` (project) and `~/.dsh/rules/` (user); (2) assembles them
+  into a **managed block** in `AGENTS.local.md` (project; dsh's local overlay —
+  `AGENTS.md`/`CLAUDE.md` stay untouched) and `~/.dsh/AGENTS.md` (user, dsh's only
+  user-global entry). Role packs deploy to `.dsh/agents/myrules-<role>.md` and are
+  summoned by prompt assembly (stock `subagent` / Agent Teams `spawn_teammate`) or
+  by named delegation tools from the `.dsh/roles-tool-rows.yml` scaffold that
+  sync generates — MyRules never edits dsh profiles automatically. Hooks mirror
+  their prose convention into `.dsh/rules/myrules-hook-*.md` (the official
+  `dsh-hooks-claude-code` bridge auto-trigger is a documented follow-up).
+  `sync` prints a warning when the combined blocks approach dsh's 64 KiB
+  instruction budget (broader files are dropped first).
 
 ## Protect — never read, write, or delete these
 
 - `CLAUDE.md`, `.claude/CLAUDE.md`, `CLAUDE.local.md`
-- `AGENTS.md`
+- `AGENTS.md` (dsh 的规则经 `AGENTS.local.md` 管理块注入，`AGENTS.md` 一个字节不碰；
+  `~/.dsh/AGENTS.md` 仅管理 `<!-- myrules:begin/end -->` 块内，块外内容逐字保留)
 - Claude auto memory under `~/.claude/projects/**/memory/**`
 - `.myrules-context.md`, `README.md`, `docs/能力/**`, `docs/设计目标检查清单.md` body, `docs/看板/items/**`, `ledger/board/**`, `ledger/ops/**`, draft/STATUS contents once written
 - Unprefixed `docs/方法/项目工作法.md` (legacy copy-once file)

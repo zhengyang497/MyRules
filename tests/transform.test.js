@@ -163,3 +163,62 @@ test('transformForAgent cursor and claude outputs retain name and model fields a
     assert.match(out, /model: "inherit"/, `${platform} missing model field`);
   }
 });
+
+test('transformForDsh returns the body unchanged', () => {
+  const out = transform.transformForDsh('# Hello\n\n- one');
+  assert.strictEqual(out, '# Hello\n\n- one');
+});
+
+test('transformForAgent with platform dsh emits a role file with name, description, and readonly frontmatter', () => {
+  const out = transform.transformForAgent({
+    roleMeta: { description: 'Reviews code', readonly: true, model: 'inherit' },
+    roleId: 'reviewer',
+    agentName: 'myrules-reviewer',
+    userBodies: [{ topic: 'preferences', body: '- be concise' }],
+    projectBodies: [{ topic: 'testing', body: '- write tests' }],
+    platform: 'dsh',
+  });
+  assert.match(out, /^---\n/);
+  assert.match(out, /name: "myrules-reviewer"/);
+  assert.match(out, /description: "Reviews code"/);
+  assert.match(out, /readonly: true/);
+  assert.doesNotMatch(out, /model:/);
+  assert.doesNotMatch(out, /permissionMode:/);
+  assert.doesNotMatch(out, /mode:/);
+  assert.match(out, /## user: preferences/);
+  assert.match(out, /## project: testing/);
+});
+
+test('transformForAgent with platform dsh marks non-readonly roles readonly: false', () => {
+  const out = transform.transformForAgent({
+    roleMeta: { description: 'Implements code', readonly: false, model: 'inherit' },
+    roleId: 'implementer',
+    agentName: 'myrules-implementer',
+    userBodies: [],
+    projectBodies: [],
+    platform: 'dsh',
+  });
+  assert.match(out, /readonly: false/);
+});
+
+test('transformForAgent cursor, claude, and opencode outputs are unchanged by the dsh branch', () => {
+  const base = {
+    roleMeta: { description: 'Plans work.', readonly: true, model: 'inherit' },
+    roleId: 'planner',
+    agentName: 'myrules-planner',
+    userBodies: [{ topic: 'preferences', body: '- be concise' }],
+    projectBodies: [],
+  };
+  const cursor = transform.transformForAgent({ ...base, platform: 'cursor' });
+  assert.strictEqual(
+    cursor,
+    '---\nname: "myrules-planner"\ndescription: "Plans work."\nmodel: "inherit"\nreadonly: true\n---\n\n## user: preferences\n\n- be concise'
+  );
+  const claude = transform.transformForAgent({ ...base, platform: 'claude' });
+  assert.strictEqual(
+    claude,
+    '---\nname: "myrules-planner"\ndescription: "Plans work."\nmodel: "inherit"\npermissionMode: "plan"\n---\n\n## user: preferences\n\n- be concise'
+  );
+  const opencode = transform.transformForAgent({ ...base, platform: 'opencode' });
+  assert.match(opencode, /^---\ndescription: "Plans work."\nmode: subagent\n/);
+});

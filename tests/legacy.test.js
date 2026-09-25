@@ -74,3 +74,17 @@ test('scanLegacy finds non-managed .opencode/rules/*.md files', () => {
   // agents are not rules - not scanned
   assert.ok(!relative.some((f) => f.includes('agents')));
 });
+
+test('scanLegacy finds non-managed .dsh/rules/*.md files', () => {
+  const project = tmpProject();
+  write(path.join(project, '.dsh', 'rules', 'myrules-testing.md'));
+  write(path.join(project, '.dsh', 'rules', 'old-style.md'));
+  write(path.join(project, '.dsh', 'agents', 'old-agent.md'));
+  write(path.join(project, 'AGENTS.md'));
+
+  const found = legacy.scanLegacy(project, 'myrules-');
+  const relative = found.map((f) => path.relative(project, f)).sort();
+  assert.ok(relative.includes(path.join('.dsh', 'rules', 'old-style.md')));
+  // agents are not rules; AGENTS.md is user-owned — neither is scanned
+  assert.ok(!relative.some((f) => f.includes('agents') || f.includes('AGENTS.md')));
+});

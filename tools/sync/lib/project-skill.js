@@ -10,6 +10,7 @@ function getDefaults(manifest) {
     skillDir: bootstrap.skillDir || path.dirname(skillSource),
     cursorSkillDir: bootstrap.cursor?.skillDir || '.cursor/skills/myrules',
     claudeSkillDir: bootstrap.claude?.skillDir || '.claude/skills/myrules',
+    dshSkillDir: bootstrap.dsh?.skillDir || '.dsh/skills/myrules',
     overwriteSkill: bootstrap.overwriteSkill || 'if_changed',
   };
 }
@@ -33,6 +34,9 @@ function destinationSkillDirs(projectRoot, manifest) {
   }
   if (platforms.includes('claude')) {
     dirs.push(path.join(projectRoot, cfg.claudeSkillDir));
+  }
+  if (platforms.includes('dsh')) {
+    dirs.push(path.join(projectRoot, cfg.dshSkillDir));
   }
   return dirs;
 }
@@ -106,12 +110,27 @@ function isProjectSkillInstalled(projectRoot, manifest) {
   return dests.length > 0 && dests.every((d) => fs.existsSync(d.path));
 }
 
+/**
+ * 迁移自愈判定：旧平台（dsh 以外）的 skill 都在，仅新增平台目标缺失。
+ * 只有这种「老项目遇到新平台」的场景才允许 sync 静默补齐；
+ * 完全未安装的项目仍然报错，要求显式 install-skill。
+ */
+function isLegacySkillInstalled(projectRoot, manifest) {
+  const cfg = getDefaults(manifest);
+  const platforms = (manifest.platforms || ['cursor', 'claude']).filter((p) => p !== 'dsh');
+  if (platforms.length === 0) return false;
+  return platforms.every((p) => {
+    const rel = p === 'cursor' ? cfg.cursorSkillDir : p === 'claude' ? cfg.claudeSkillDir : null;
+    return rel ? fs.existsSync(path.join(projectRoot, rel, 'SKILL.md')) : true;
+  });
+}
+
 function logSkillInstallResult(result, manifest) {
   if (result.installed.length) {
     console.log(`Installed MyRules skill (${result.installed.length}):`);
     result.installed.forEach((p) => console.log(`  ${p}`));
     if (manifest.bootstrap?.commitSkillToGit !== false) {
-      console.log('Commit .cursor/skills/myrules/ (and .claude/skills/myrules/ if present) to git.');
+      console.log('Commit .cursor/skills/myrules/ (and .claude/skills/myrules/ / .dsh/skills/myrules/ if present) to git.');
     }
   }
   if (result.updated.length) {
@@ -128,5 +147,6 @@ module.exports = {
   destinationSkillDirs,
   getDefaults,
   isProjectSkillInstalled,
+  isLegacySkillInstalled,
   logSkillInstallResult,
 };

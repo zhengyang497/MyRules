@@ -1,21 +1,26 @@
 # MyRules
 
 Personal AI **rules**, **Cursor hooks**, and an **external skill subscription
-list**, synced across devices, platforms (Cursor + Claude), and projects via
-this GitHub repo.
+list**, synced across devices, platforms (Cursor + Claude + OpenCode + dsh), and
+projects via this GitHub repo.
 
 Content lives in `~/.myrules/` (a clone of this repo). `sync.js` deploys
-generated artifacts into each project and into `~/.cursor/` / `~/.claude/` —
-those outputs are not the source of truth.
+generated artifacts into each project and into `~/.cursor/` / `~/.claude/` /
+dsh targets — those outputs are not the source of truth.
 
 Each sync writes channels from the same cache sources:
 
 - **Rules** — `rules/user/` + `rules/project/` → `.cursor/rules/` and
   `.claude/rules/` (always loaded in the main session). Files with `runtimes:`
-  frontmatter stay in role bundles only.
+  frontmatter stay in role bundles only. dsh has no rules directory, so rules
+  are archived in `.dsh/rules/` and assembled into a managed block in
+  `AGENTS.local.md` (project) / `~/.dsh/AGENTS.md` (user) — dsh's only
+  always-loaded instruction surfaces. `AGENTS.md` / `CLAUDE.md` are never touched.
 - **Sub-agents** — filtered by `agents:` and `.myrules-runtime.json`.
   `agent`: planner / implementer / reviewer. `project`: researcher /
-  implementer / reviewer / publisher.
+  implementer / reviewer / publisher. On dsh these become role files under
+  `.dsh/agents/` plus a `dsh-tool-subagent` scaffold (`.dsh/roles-tool-rows.yml`);
+  see `skills/myrules/REFERENCE.md`.
 - **Method pack** — `method/` → `docs/方法/myrules-*.md`, method short rules,
   `project-method` skill, hosted board scripts. Updated every sync.
 

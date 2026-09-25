@@ -100,9 +100,11 @@ function deployAgents(cacheDir, projectRoot, opts = {}) {
   const cursorDir = paths.getCursorAgentsDir(projectRoot);
   const claudeDir = paths.getClaudeAgentsDir(projectRoot);
   const opencodeDir = paths.getOpencodeAgentsDir(projectRoot);
+  const dshDir = paths.getDshProjectAgentsDir(projectRoot);
   fs.mkdirSync(cursorDir, { recursive: true });
   fs.mkdirSync(claudeDir, { recursive: true });
   fs.mkdirSync(opencodeDir, { recursive: true });
+  fs.mkdirSync(dshDir, { recursive: true });
 
   const tracker = drift.createTracker({ force, priorHashes });
   const missingAgents = scanProjectMissingAgents(cacheDir);
@@ -173,12 +175,34 @@ function deployAgents(cacheDir, projectRoot, opts = {}) {
         opencodeStateKey
       );
     }
+
+    // dsh 角色文件（两个 runtime 都部署：dsh 的派工一律经 prompt 组装角色正文）
+    const dshFile = `${agentName}.md`;
+    const dshTarget = path.join(dshDir, dshFile);
+    const dshStateKey = path.posix.join('.dsh/agents', dshFile);
+    tracker.writeTracked(
+      dshTarget,
+      withWorkerFooter(
+        transform.transformForAgent({
+          roleMeta,
+          roleId,
+          agentName,
+          userBodies,
+          projectBodies,
+          platform: 'dsh',
+        }),
+        runtime,
+        roleId
+      ),
+      dshStateKey
+    );
   }
 
   const staleRemoved = [
     ...staleAgentCleanup(cursorDir, prefix, roleIds, '.md'),
     ...staleAgentCleanup(claudeDir, prefix, roleIds, '.md'),
     ...staleAgentCleanup(opencodeDir, prefix, runtime === 'project' ? [] : roleIds, '.md'),
+    ...staleAgentCleanup(dshDir, prefix, roleIds, '.md'),
   ];
 
   for (const key of Object.keys(priorHashes)) {
@@ -208,4 +232,5 @@ module.exports = {
   scanProjectMissingAgents,
   staleAgentCleanup,
   withWorkerFooter,
+  workerFooterForRole,
 };

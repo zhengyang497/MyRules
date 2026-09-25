@@ -98,6 +98,65 @@ test('deployAgents removes stale agent files from prior deploys', () => {
   assert.strictEqual(fs.existsSync(staleFile), false);
 });
 
+test('deployAgents writes dsh role files with role-file frontmatter', () => {
+  const cache = makeCache();
+  const project = makeProject();
+  const manifest = loadManifest.loadManifest(cache);
+  deployAgents.deployAgents(cache, project, { force: false, priorAgentHashes: {}, manifest });
+
+  for (const role of ['planner', 'implementer', 'reviewer']) {
+    const dshFile = path.join(project, '.dsh', 'agents', `myrules-${role}.md`);
+    assert.ok(fs.existsSync(dshFile), `missing ${dshFile}`);
+  }
+
+  const reviewer = fs.readFileSync(path.join(project, '.dsh', 'agents', 'myrules-reviewer.md'), 'utf8');
+  assert.match(reviewer, /^---\n/);
+  assert.match(reviewer, /name: "myrules-reviewer"/);
+  assert.match(reviewer, /description: /);
+  assert.match(reviewer, /readonly: true/);
+  assert.match(reviewer, /## user: preferences/);
+  assert.match(reviewer, /## project: testing/);
+  assert.doesNotMatch(reviewer, /permissionMode:/);
+  assert.doesNotMatch(reviewer, /^\s*mode:/m);
+  assert.doesNotMatch(reviewer, /model:/);
+});
+
+test('deployAgents dsh role files get worker footers under project runtime', () => {
+  const cache = makeCache();
+  const project = makeProject();
+  const manifest = loadManifest.loadManifest(cache);
+  deployAgents.deployAgents(cache, project, { force: false, priorAgentHashes: {}, manifest, runtime: 'project' });
+
+  const implementer = path.join(project, '.dsh', 'agents', 'myrules-implementer.md');
+  assert.ok(fs.existsSync(implementer), `missing ${implementer}`);
+  assert.match(fs.readFileSync(implementer, 'utf8'), /工人纪律/);
+});
+
+test('deployAgents removes stale dsh role files', () => {
+  const cache = makeCache();
+  const project = makeProject();
+  const manifest = loadManifest.loadManifest(cache);
+  const dshDir = path.join(project, '.dsh', 'agents');
+  fs.mkdirSync(dshDir, { recursive: true });
+  const stale = path.join(dshDir, 'myrules-obsolete.md');
+  fs.writeFileSync(stale, 'old role');
+
+  deployAgents.deployAgents(cache, project, { force: false, priorAgentHashes: {}, manifest });
+  assert.strictEqual(fs.existsSync(stale), false);
+});
+
+test('deployAgents cursor and claude outputs stay byte-identical after dsh addition', () => {
+  const cache = makeCache();
+  const project = makeProject();
+  const manifest = loadManifest.loadManifest(cache);
+  deployAgents.deployAgents(cache, project, { force: false, priorAgentHashes: {}, manifest });
+
+  const planner = fs.readFileSync(path.join(project, '.cursor', 'agents', 'myrules-planner.md'), 'utf8');
+  assert.ok(planner.startsWith('---\nname: "myrules-planner"\ndescription: "Plans work: clarify requirements, decompose tasks, define scope. Use before implementation."\nmodel: "inherit"\nreadonly: true\n---\n'), planner.slice(0, 120));
+  const claude = fs.readFileSync(path.join(project, '.claude', 'agents', 'myrules-reviewer.md'), 'utf8');
+  assert.match(claude, /^---\nname: "myrules-reviewer"\ndescription: "Skeptical reviewer: verify claims, run tests, report pass\/fail\. Read-only\."\nmodel: "inherit"\npermissionMode: "plan"\n---\n/);
+});
+
 test('deployAgents cursor and claude outputs are byte-identical to pre-opencode baseline', () => {
   // Self-contained cache: do NOT use seedCacheContent - the snapshot must be
   // deterministic and not depend on the real repo's rules/ directory.

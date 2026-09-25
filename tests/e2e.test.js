@@ -55,6 +55,7 @@ test('end-to-end: init, sync, protect, dry-run prune, prune, export', () => {
     skipUserConfig: true,
     claudeUserDir: path.join(project, '.fake-claude-home', 'rules'),
     opencodeUserDir: path.join(project, '.fake-opencode-home', 'rules'),
+    dshUserDir: path.join(project, '.fake-dsh-home', 'rules'),
     homeDir: path.join(project, '.fake-home'),
   };
 
@@ -76,6 +77,21 @@ test('end-to-end: init, sync, protect, dry-run prune, prune, export', () => {
   const ocConfig = JSON.parse(fs.readFileSync(path.join(project, 'opencode.json'), 'utf8'));
   assert.ok(ocConfig.instructions.includes('.opencode/rules/myrules-*.md'));
   assert.ok(fs.existsSync(path.join(project, '.opencode', 'agents', 'myrules-implementer.md')));
+
+  // dsh: 规则留档 + AGENTS.local.md 管理块 + 角色文件 + 委派工具脚手架
+  assert.ok(fs.existsSync(path.join(project, '.dsh', 'rules', 'myrules-testing.md')));
+  assert.ok(fs.existsSync(path.join(project, '.dsh', 'skills', 'myrules', 'SKILL.md')));
+  assert.ok(fs.existsSync(path.join(project, '.dsh', 'agents', 'myrules-implementer.md')));
+  assert.ok(fs.existsSync(path.join(project, '.dsh', 'roles-tool-rows.yml')));
+  const agentsLocal = fs.readFileSync(path.join(project, 'AGENTS.local.md'), 'utf8');
+  assert.match(agentsLocal, /<!-- myrules:begin -->/);
+  assert.match(agentsLocal, /## myrules: testing/);
+  assert.match(agentsLocal, /角色工具表/);
+  assert.match(agentsLocal, /组队规则/);
+  assert.ok(agentsLocal.trimEnd().endsWith('<!-- myrules:end -->'));
+  assert.doesNotMatch(agentsLocal, /alwaysApply/, 'method rules must be stripped of cursor frontmatter');
+  assert.match(fs.readFileSync(path.join(project, '.dsh', 'agents', 'myrules-reviewer.md'), 'utf8'), /readonly: true/);
+
   assert.strictEqual(fs.readFileSync(path.join(project, 'CLAUDE.md'), 'utf8'), '# Project context — do not touch');
   assert.strictEqual(fs.readFileSync(path.join(project, 'AGENTS.md'), 'utf8'), '# Agent notes — do not touch');
 
@@ -108,7 +124,7 @@ test('end-to-end: init, sync, protect, dry-run prune, prune, export', () => {
 
   const editedFile = path.join(project, '.cursor', 'rules', 'myrules-testing.mdc');
   fs.writeFileSync(editedFile, fs.readFileSync(editedFile, 'utf8').replace('write tests', 'write ALL the tests'));
-  const report = exportLib.exportProject(cache, project, { claudeUserDir: opts.claudeUserDir, opencodeUserDir: opts.opencodeUserDir });
+  const report = exportLib.exportProject(cache, project, { claudeUserDir: opts.claudeUserDir, opencodeUserDir: opts.opencodeUserDir, dshUserDir: opts.dshUserDir });
   assert.ok(report.toUpdate.some((u) => u.deployedFile === editedFile));
 
   fs.rmSync(path.join(cache, 'hooks', 'project', 'session-start-context.js'));

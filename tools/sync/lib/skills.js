@@ -88,13 +88,15 @@ function syncOne(skill, targetRoot, cacheDir, { update = false } = {}) {
   return { dest, ...gitResult };
 }
 
-function syncSkills(cacheDir, { cursorSkillsDir, claudeSkillsDir, update = false } = {}) {
+function syncSkills(cacheDir, { cursorSkillsDir, claudeSkillsDir, dshSkillsDir, update = false } = {}) {
   const { skills } = loadManifest(cacheDir);
   const results = [];
+  const targetRoots = [cursorSkillsDir, claudeSkillsDir];
+  if (dshSkillsDir) targetRoots.push(dshSkillsDir);
 
   for (const skill of skills) {
     if (skill.name === 'myrules') continue;
-    for (const targetRoot of [cursorSkillsDir, claudeSkillsDir]) {
+    for (const targetRoot of targetRoots) {
       try {
         const { dest, reused, warning, updated, cloned } = syncOne(skill, targetRoot, cacheDir, { update });
         results.push({

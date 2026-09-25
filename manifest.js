@@ -3,7 +3,7 @@ const BOTH = ['agent', 'project'];
 module.exports = {
   version: 1,
   repo: "https://github.com/zhengyang497/MyRules.git",
-  platforms: ["cursor", "claude", "opencode"],
+  platforms: ["cursor", "claude", "opencode", "dsh"],
 
   managedPrefix: "myrules-",
 
@@ -51,6 +51,7 @@ module.exports = {
     skillDir: "skills/myrules",
     cursor: { skillDir: ".cursor/skills/myrules" },
     claude: { skillDir: ".claude/skills/myrules" },
+    dsh: { skillDir: ".dsh/skills/myrules" },
     overwriteSkill: "if_changed",
     commitSkillToGit: true,
   },
@@ -77,6 +78,24 @@ module.exports = {
     agentsDir: ".opencode/agents",
     projectInstructionsGlob: ".opencode/rules/myrules-*.md",
     userInstructionsGlob: "rules/myrules-user-*.md",
+  },
+
+  dsh: {
+    projectRulesDir: ".dsh/rules",
+    userRulesDir: "~/.dsh/rules",
+    extension: ".md",
+    projectSkillsDir: ".dsh/skills",
+    userSkillsDir: "~/.dsh/skills",
+    projectAgentsDir: ".dsh/agents",
+    // 项目侧管理块落在 AGENTS.local.md（dsh 的本地覆盖层，随 AGENTS.md 链加载）：
+    // AGENTS.md / CLAUDE.md 是保护清单文件，MyRules 一个字节都不碰。
+    agentsFile: "AGENTS.local.md",
+    // 用户级只有固定入口 ~/.dsh/AGENTS.md（dsh 无 local 覆盖层），管理块写这里
+    userAgentsFile: "~/.dsh/AGENTS.md",
+    blockBegin: "<!-- myrules:begin -->",
+    blockEnd: "<!-- myrules:end -->",
+    // 角色委派工具行（dsh-tool-subagent）的脚手架产物，不主动写用户 profile
+    rolesRowsFile: ".dsh/roles-tool-rows.yml",
   },
 
   method: {
@@ -137,14 +156,43 @@ module.exports = {
         runtimes: ["project"],
         kind: "claude-rule",
       },
+      {
+        src: "method/core/rules/myrules-method-small.mdc",
+        dest: ".dsh/rules/myrules-method-small.md",
+        runtimes: BOTH,
+        kind: "dsh-rule",
+      },
+      {
+        src: "method/core/rules/myrules-method-session.mdc",
+        dest: ".dsh/rules/myrules-method-session.md",
+        runtimes: BOTH,
+        kind: "dsh-rule",
+      },
+      {
+        src: "method/agent/rules/myrules-method-agent.mdc",
+        dest: ".dsh/rules/myrules-method-agent.md",
+        runtimes: ["agent"],
+        kind: "dsh-rule",
+        instanceOwned: "drop",
+      },
+      {
+        src: "method/project/rules/myrules-method-coordinator.mdc",
+        dest: ".dsh/rules/myrules-method-coordinator.md",
+        runtimes: ["project"],
+        kind: "dsh-rule",
+      },
       { srcDir: "method/skills/project-method", destDir: ".cursor/skills/project-method", runtimes: BOTH, instanceOwned: "preserve" },
       { srcDir: "method/skills/project-method", destDir: ".claude/skills/project-method", runtimes: BOTH, instanceOwned: "preserve" },
+      { srcDir: "method/skills/project-method", destDir: ".dsh/skills/project-method", runtimes: BOTH, instanceOwned: "preserve" },
       { src: "method/core/templates/设计目标.md", dest: ".cursor/skills/project-method/templates/设计目标.md", runtimes: BOTH, instanceOwned: "preserve" },
       { src: "method/core/templates/检查清单.md", dest: ".cursor/skills/project-method/templates/检查清单.md", runtimes: BOTH, instanceOwned: "preserve" },
       { src: "method/core/templates/看板卡片.md", dest: ".cursor/skills/project-method/templates/看板卡片.md", runtimes: BOTH, instanceOwned: "preserve" },
       { src: "method/core/templates/设计目标.md", dest: ".claude/skills/project-method/templates/设计目标.md", runtimes: BOTH, instanceOwned: "preserve" },
       { src: "method/core/templates/检查清单.md", dest: ".claude/skills/project-method/templates/检查清单.md", runtimes: BOTH, instanceOwned: "preserve" },
       { src: "method/core/templates/看板卡片.md", dest: ".claude/skills/project-method/templates/看板卡片.md", runtimes: BOTH, instanceOwned: "preserve" },
+      { src: "method/core/templates/设计目标.md", dest: ".dsh/skills/project-method/templates/设计目标.md", runtimes: BOTH, instanceOwned: "preserve" },
+      { src: "method/core/templates/检查清单.md", dest: ".dsh/skills/project-method/templates/检查清单.md", runtimes: BOTH, instanceOwned: "preserve" },
+      { src: "method/core/templates/看板卡片.md", dest: ".dsh/skills/project-method/templates/看板卡片.md", runtimes: BOTH, instanceOwned: "preserve" },
       { src: "method/agent/scripts/myrules-board.mjs", dest: "scripts/myrules-board.mjs", runtimes: BOTH, instanceOwned: "drop" },
       { src: "method/agent/scripts/myrules-board-io.mjs", dest: "scripts/myrules-board-io.mjs", runtimes: BOTH, instanceOwned: "drop" },
       { src: "method/agent/scripts/myrules-board-server.mjs", dest: "scripts/myrules-board-server.mjs", runtimes: BOTH, instanceOwned: "drop" },
