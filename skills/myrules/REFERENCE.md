@@ -122,7 +122,11 @@ those repos still get the full hosted pack.
 - `.myrules-context.md`, `README.md`, `docs/能力/**`, `docs/设计目标检查清单.md` body, `docs/看板/items/**`, `ledger/board/**`, `ledger/ops/**`, draft/STATUS contents once written
 - Unprefixed `docs/方法/项目工作法.md` (legacy copy-once file)
 - With `instanceLanding: true`: `.cursor/skills/project-method/**` and
-  `.claude/skills/project-method/**` (preserve). Hosted board scripts and the
+  `.claude/skills/project-method/**` (preserve), now including `.dsh/skills/project-method/**`.
+  Preserve semantics: existing copies are never overwritten; a target platform
+  missing its copy is **gap-filled by mirroring the instance's own sibling copy**
+  (not the cache version); if the instance deleted every platform copy, the
+  deletion is respected and nothing is rebuilt. Hosted board scripts and the
   agent board short rule are dropped, not preserved.
 - Any `.cursor/rules/*` or `.claude/rules/*` file that does **not** start with
   `myrules-`, unless the user has explicitly confirmed `--prune-legacy-rules`
