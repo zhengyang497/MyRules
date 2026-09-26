@@ -30,13 +30,17 @@ function entriesForRuntime(manifest, runtime) {
   });
 }
 
-function contentForEntry(srcPath, kind) {
-  const raw = fs.readFileSync(srcPath, 'utf8');
+// 部署内容的字节级 transform（deploy 与 reverse-map 反查共用同一实现，保证逐字节一致）
+function contentForText(raw, kind) {
   if (kind === 'claude-rule') return transform.stripCursorFrontmatter(raw);
   // dsh-rule：剥掉 Cursor frontmatter。用 CRLF 兼容的 stripRuleFrontmatter
   // （stripCursorFrontmatter 的正则只认 \n；method 源文件是 CRLF）。
   if (kind === 'dsh-rule') return transform.stripRuleFrontmatter(raw);
   return raw;
+}
+
+function contentForEntry(srcPath, kind) {
+  return contentForText(fs.readFileSync(srcPath, 'utf8'), kind);
 }
 
 function relIsPreserved(rel, preserveRels) {
@@ -174,4 +178,4 @@ function deployMethod(cacheDir, projectRoot, opts = {}) {
   return { hashes: tracker.hashes, drifted: tracker.drifted, staleRemoved, dropped, gapFilled, preserveRels: [...preserveRels] };
 }
 
-module.exports = { deployMethod, entriesForRuntime, staleMethodCleanup, relIsPreserved, gapFillPreserve, preserveGroupsOf };
+module.exports = { deployMethod, entriesForRuntime, staleMethodCleanup, relIsPreserved, gapFillPreserve, preserveGroupsOf, contentForText };
