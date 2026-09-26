@@ -518,7 +518,7 @@ test('instanceLanding force arrange leaves custom board scripts in package.json'
   assert.strictEqual(marker.instanceLanding, true);
 });
 
-test('hand-edited project-method skill is skipped on later sync', () => {
+test('hand-edited project-method skill is skipped on later sync（--no-capture 路径）', () => {
   const cache = makeCacheRepo();
   const project = tmp('myrules-rt-skill-drift-');
   arrange(project, cache, 'project');
@@ -529,7 +529,8 @@ test('hand-edited project-method skill is skipped on later sync', () => {
   const origWarn = console.warn;
   console.warn = (...args) => warns.push(args.join(' '));
   try {
-    syncCli.run(syncOpts(project, cache));
+    // 控制器裁定（Option B）：关掉捕获走 drift 路径——告警 + 不覆盖，这正是 --no-capture 的承诺
+    syncCli.run({ ...syncOpts(project, cache), noCapture: true });
   } finally {
     console.warn = origWarn;
   }

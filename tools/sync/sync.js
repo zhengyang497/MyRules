@@ -19,14 +19,16 @@ const deployMethod = require('./lib/deploy-method');
 const projectSkill = require('./lib/project-skill');
 const dshInstructions = require('./lib/dsh-instructions');
 const dshRoles = require('./lib/dsh-roles-deploy');
+const capture = require('./lib/capture');
 const exportLib = require('./lib/export');
 
 function parseArgs(argv) {
-  const args = { dryRun: false, prune: false, project: null, all: false, force: false, updateSkills: false };
+  const args = { dryRun: false, prune: false, project: null, all: false, force: false, updateSkills: false, noCapture: false };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--dry-run') args.dryRun = true;
     else if (argv[i] === '--prune-legacy-rules') args.prune = true;
     else if (argv[i] === '--force') args.force = true;
+    else if (argv[i] === '--no-capture') args.noCapture = true;
     else if (argv[i] === '--all') args.all = true;
     else if (argv[i] === '--update-skills') args.updateSkills = true;
     else if (argv[i] === '--project') args.project = argv[++i];
@@ -74,6 +76,35 @@ function reportDrifted(label, files, projectRoot) {
     const rel = projectRoot ? path.relative(projectRoot, f).replace(/\\/g, '/') : '';
     const shown = rel && !rel.startsWith('..') ? rel : f;
     console.warn(`  ${shown} -> ${driftAdvice(f, projectRoot)}`);
+  }
+}
+
+const CAPTURE_CONFLICT_TEXT = {
+  'no-baseline': 'no deploy baseline in sync state',
+  'cache-moved': 'cache source changed since your edit (published elsewhere) - merge by hand in ~/.myrules and push',
+  'header-edit': 'frontmatter changed; only body edits auto-capture - copy it into ~/.myrules by hand',
+  'disagree': 'platform copies disagree (two different edits) - pick one in ~/.myrules and push',
+  'new-file': 'new file in a managed skill dir - run export --apply to add it to the cache',
+};
+
+function displayRel(projectRoot, abs) {
+  const rel = path.relative(projectRoot, abs).replace(/\\/g, '/');
+  return rel && !rel.startsWith('..') ? rel : abs;
+}
+
+function reportCaptures(projectRoot, result) {
+  if (result.captured.length) {
+    console.log(`Captured ${result.captured.length} hand edit(s) into ~/.myrules (run push.js to publish):`);
+    for (const c of result.captured) {
+      const srcRel = c.sourceAbs.replace(/\\/g, '/').replace(/^.*\/\.myrules\//, '~/.myrules/');
+      console.log(`  ${displayRel(projectRoot, c.abs)} -> ${srcRel}`);
+    }
+  }
+  if (result.conflicts.length) {
+    console.warn(`NOT captured: ${result.conflicts.length} hand edit(s) (kept as-is, never overwritten):`);
+    for (const c of result.conflicts) {
+      console.warn(`  ${displayRel(projectRoot, c.abs)} -> ${CAPTURE_CONFLICT_TEXT[c.reason]}`);
+    }
   }
 }
 
@@ -128,6 +159,22 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
   }
 
   const current = state.readState(projectRoot);
+
+  // 捕获 pass（部署之前）：可反查的手改自动写回缓存源（spec capture-on-sync）。
+  // --force 的既有语义是丢弃本地改动，与捕获互斥；--no-capture 退回「告警 + export」模式。
+  if (!opts.noCapture && !opts.force) {
+    const captureResult = capture.captureHandEdits(cacheDir, projectRoot, {
+      manifest,
+      runtime,
+      instanceLanding: runtimeLib.hasInstanceLanding(projectRoot),
+      priorHashes: current.deployedHashes || {},
+      ...(opts.claudeUserDir ? { claudeUserDir: opts.claudeUserDir } : {}),
+      ...(opts.opencodeUserDir ? { opencodeUserDir: opts.opencodeUserDir } : {}),
+      dshUserDir: opts.dshUserDir || paths.getDshUserRulesDir(homeDir),
+    });
+    reportCaptures(projectRoot, captureResult);
+  }
+
   const result = deploy.deployRules(cacheDir, projectRoot, {
     force: opts.force,
     priorHashes: current.deployedHashes,
@@ -251,7 +298,7 @@ function run(opts) {
 
   if (!opts.skipPull) {
     if (git.isDirty(cacheDir)) {
-      throw new Error(`${cacheDir} has uncommitted changes. Commit/stash, or run push.js, before syncing.`);
+      throw new Error(`${cacheDir} has uncommitted changes (possibly captured edits). Run node tools/sync/push.js to publish, or resolve manually.`);
     }
     git.pullFastForward(cacheDir);
   }
