@@ -18,7 +18,7 @@ Vocabulary (used throughout this skill):
 | Hooks | `hooks/user/*.js`, `hooks/project/*.js` | Cursor: `hooks.json` + `myrules-*.js`; Claude: `myrules-hook-*.md` convention docs only; dsh: `.dsh/rules/myrules-hook-*.md`（进管理块） | See seed hooks `session-log`, `session-start-context`, `subagent-start-worker` |
 | External skills | `skills-manifest.js` | `~/.cursor/skills/<name>/`, `~/.claude/skills/<name>/`, `~/.dsh/skills/<name>/` | Never list `myrules` here; optional `path` extracts a monorepo subfolder |
 | Bootstrap skill | `skills/myrules/*` | Project `.cursor/skills/myrules/` (and `.claude/skills/myrules/`, `.dsh/skills/myrules/`) | Via `install-skill.js` |
-| Method pack | `method/core/`, `method/agent/`, `method/project/`, `method/skills/` | `docs/方法/myrules-*.md`, `.cursor/rules/myrules-method-*.mdc`, `.cursor/skills/project-method/`, `.{cursor,claude,dsh}/skills/<写作技能>/`, `scripts/myrules-board*.mjs` | **Hosted.** Updated every sync unless `instanceLanding` (see below). Core small-edit + session rules are alwaysApply on both runtimes, with per-runtime source variants (`method/agent/rules/` vs `method/project/rules/`, same deployed name); the coordinator seat-arbitration sentence ships only in the project variant. Coordinator short rule is project-only with `alwaysApply: false`. The four writing skills (`cohesion-coupling-diagnosis`, `rewriting-model-letter-form/-rules`, `writing-for-the-reader`) deploy to `.cursor/.claude/.dsh` skills dirs on both runtimes — prefer editing them in the cache; project copies are tracked artifacts (hand-edits are warned about on **every** sync and never overwritten — reverse them into the cache with `export --apply`). Instance files (goals, ledger notes, `.myrules-context.md`) are never overwritten. Copy-once templates are abolished |
+| Method pack | `method/core/`, `method/agent/`, `method/project/`, `method/skills/` | `docs/方法/myrules-*.md`, `.cursor/rules/myrules-method-*.mdc`, `.cursor/skills/project-method/`, `.{cursor,claude,dsh}/skills/<写作技能>/`, `scripts/myrules-board*.mjs` | **Hosted.** Updated every sync unless `instanceLanding` (see below). Core small-edit + session rules are alwaysApply on both runtimes, with per-runtime source variants (`method/agent/rules/` vs `method/project/rules/`, same deployed name); the coordinator seat-arbitration sentence ships only in the project variant. Coordinator short rule is project-only with `alwaysApply: false`. The four writing skills (`cohesion-coupling-diagnosis`, `rewriting-model-letter-form/-rules`, `writing-for-the-reader`) deploy to `.cursor/.claude/.dsh` skills dirs on both runtimes — prefer editing them in the cache; project copies are tracked artifacts; body edits are auto-captured back into the cache on the next sync (run push.js to publish), frontmatter edits and cross-platform disagreements are reported and left alone. Instance files (goals, ledger notes, `.myrules-context.md`) are never overwritten. Copy-once templates are abolished |
 | Rule authoring (meta) | `rules/meta/*.md` | *(not deployed)* | Read in cache before editing `user/` / `project/` |
 | Project context | — | `<project>/.myrules-context.md` | Instance; published purpose. Not overwritten by sync |
 | Runtime marker | — | `<project>/.myrules-runtime.json` | Commit this file. `agent` or `project`. Optional `instanceLanding: true`. Cloud clones read it |
@@ -137,17 +137,19 @@ those repos still get the full hosted pack.
 
 ## Safety rules
 
-- `sync` skips (and reports) any hand-edited **artifact** — rule, hook, method
-  file, or skill — on **every** run: it is never overwritten, not even by later
-  syncs. Reverse channel: skills → `export.js --apply` writes the edit back into
-  `method/skills/`; rules → `export.js` lists the diff, copy it back by hand.
-  Hooks / method short rules / scripts / agent files have no export path — edit
-  the source in `~/.myrules/` and push. Use `--force` only when the user
-  explicitly wants to discard local edits to deployed **artifacts**.
-- `export.js` reverse-maps **rules and method skill-pack files** (`--apply`
-  writes skill edits back to the cache; rules stay report-only because their
-  sources carry `agents:` / `runtimes:` frontmatter). It does not cover hooks
-  or sub-agent bundles.
+- Hand edits to deployable artifacts are **auto-captured** back into `~/.myrules`
+  on the next sync (body edits only; frontmatter is preserved). Publishing is
+  mandatory: captured edits dirty the cache and the next sync refuses to run
+  until `push.js` is executed. Capture is refused and reported, never applied,
+  when: the cache source moved on since your edit, sync state has no baseline,
+  frontmatter changed, or two platform copies disagree. `--no-capture` keeps
+  edits local (warn only); `--force` discards local edits (never captures).
+  Composite artifacts (agent bundles, hooks, hooks.json, managed blocks) have no
+  reverse path: edit the source in `~/.myrules/` and push.
+- `export.js` is the **preview/inspection** tool (report mode) plus manual
+  backfill (`--apply` writes skill edits back to the cache; rules stay
+  report-only because their sources carry `agents:` / `runtimes:` frontmatter).
+  Normal flow no longer needs it: sync auto-captures.
 - `--prune-legacy-rules` always requires a preceding `--dry-run
   --prune-legacy-rules` against the *same* legacy file set. If the tool refuses,
   run the dry-run again and show the user the list before retrying.
@@ -166,7 +168,10 @@ those repos still get the full hosted pack.
 | No runtime marker | Abort; tell user to 布置普通仓库 or 布置 Project 仓库 |
 | Cache repo has uncommitted changes | Abort before `git pull`; instruct `push.js` or manual resolve |
 | `git pull` not fast-forward | Abort; report conflict, do not auto-merge |
-| Deployed **artifact** locally modified (drift) | Skip that file on **every** run (never overwritten); suggest `export` (skills: `--apply`) or `--force` |
+| Hand edit, baseline matches cache | Auto-captured into cache source; deploy converges all copies; push.js required next |
+| Hand edit, conflict (cache moved / no baseline / header edit / platform disagreement) | Not captured; reported every sync; file kept as-is |
+| Hand edit with `--no-capture` | Not captured; drift warning with export advice |
+| New file in a managed skill dir | Reported; `export --apply` adds it to the cache |
 | Transform target not writable | Fail with path and permission hint |
 | Legacy rules + no prune flag | Deploy myrules only; print legacy count hint |
 | Prune without matching dry-run | Refuse; instruct `--dry-run --prune-legacy-rules` |

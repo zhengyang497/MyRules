@@ -17,8 +17,9 @@ MyRules repo clone / shallow clone otherwise.
 | Refresh external skills from GitHub (then keep local copies if fetch fails) | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --update-skills` |
 | Sync every registered project on this machine | `node "$HOME/.myrules/tools/sync/sync.js" --all` — each project uses its own runtime |
 | Take over an old project's rules | 1) dry-run: `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --dry-run --prune-legacy-rules`, review the listed files, then 2) `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --prune-legacy-rules` |
+| Auto-capture hand edits on sync (default) | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>"` ; disable with `--no-capture` |
 | Force-overwrite locally-edited myrules-* rules or hook scripts | `node "$HOME/.myrules/tools/sync/sync.js" --project "<workspace>" --force` |
-| See which **rules** were edited locally vs the cache | `node "$HOME/.myrules/tools/sync/export.js" --project "<workspace>"` |
+| Preview which **rules** were edited locally vs the cache | `node "$HOME/.myrules/tools/sync/export.js" --project "<workspace>"` |
 | Pull hand-edited **skill** files back into the cache | add `--apply` (writes `method/skills/…`; rules stay report-only) |
 | Publish edits made in `~/.myrules/` (rules, hooks, method pack, manifest) | `node "$HOME/.myrules/tools/sync/push.js" -m "describe the change"` |
 | Check sync status (includes hook counts) | `node "$HOME/.myrules/tools/sync/status.js" --project "<workspace>"` |

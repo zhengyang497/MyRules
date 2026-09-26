@@ -217,3 +217,4 @@ Captured 2 edit(s) into ~/.myrules (run push.js to publish):
 | 复用 dirty 闸门做卡点 | 机制已存在且已验证，零新增状态 |
 | `export` 保留 | 预览与手动回流逃生阀；与 capture 共用映射层，无重复逻辑 |
 | `--no-capture` 逃生阀 | 极端场景（想让手改停在项目里不扩散）有退路 |
+| `--force` 跳过捕获 | `--force` 的既有语义是丢弃本地改动；捕获默认开启后二者互斥，`--force` = 明确要缓存版。`--no-capture` 才是「保留本地改动但不回流」的开关 |
