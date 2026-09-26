@@ -4,6 +4,7 @@ const paths = require('./paths');
 const transform = require('./transform');
 const loadManifest = require('./load-manifest');
 const runtime = require('./runtime');
+const reverseMap = require('./reverse-map');
 
 // skillPack 部署的三个平台目录（相对项目根）
 const SKILL_PLATFORMS = ['.cursor', '.claude', '.dsh'];
@@ -24,17 +25,6 @@ function walkFiles(root) {
   };
   walk(root);
   return out;
-}
-
-// 「.cursor/skills」这样的项目相对路径（允许无尾斜杠）
-function isSkillsRoot(p) {
-  return /^\.(cursor|claude|dsh)\/skills(\/|$)/.test(posix(p));
-}
-
-// 从 manifest 的 dest/destDir 提取技能名（project-method 等）
-function skillNameOfTarget(target) {
-  const m = posix(target).match(/^\.(?:cursor|claude|dsh)\/skills\/([^/]+)/);
-  return m ? m[1] : null;
 }
 
 /**
@@ -83,19 +73,6 @@ function diffSkillFile(deployedFile, sourceFile, report) {
   }
 }
 
-// manifest 中落在 skills 目录里的单文件条目 → destRel 到缓存源的映射。
-// 目录条目（skillPack srcDir/destDir）天然满足 method/skills/<name>/<rel> 约定，
-// 不需要展开；单文件条目（如 project-method/templates/* 源自 method/core/templates/）必须显式登记。
-function skillSourceMap(manifest) {
-  const map = new Map();
-  for (const entry of (manifest.method && manifest.method.files) || []) {
-    if (entry.src && entry.dest && isSkillsRoot(entry.dest)) {
-      map.set(posix(entry.dest), posix(entry.src));
-    }
-  }
-  return map;
-}
-
 function diffSkills(cacheDir, projectRoot, manifest, report) {
   const cacheSkillsDir = path.join(cacheDir, 'method', 'skills');
   if (!fs.existsSync(cacheSkillsDir)) return;
@@ -106,12 +83,11 @@ function diffSkills(cacheDir, projectRoot, manifest, report) {
   if (runtime.hasInstanceLanding(projectRoot)) {
     for (const entry of (manifest.method && manifest.method.files) || []) {
       if (entry.instanceOwned !== 'preserve') continue;
-      const name = skillNameOfTarget(entry.destDir || entry.dest || '');
+      const name = reverseMap.skillNameOfTarget(entry.destDir || entry.dest || '');
       if (name) excluded.add(name);
     }
   }
 
-  const sourceMap = skillSourceMap(manifest);
   for (const platform of SKILL_PLATFORMS) {
     const skillsRoot = path.join(projectRoot, platform, 'skills');
     if (!fs.existsSync(skillsRoot)) continue;
@@ -122,7 +98,8 @@ function diffSkills(cacheDir, projectRoot, manifest, report) {
       if (!fs.statSync(dir).isDirectory()) continue;
       for (const abs of walkFiles(dir)) {
         const destRel = posix(path.relative(projectRoot, abs));
-        const sourceRel = sourceMap.get(destRel) || `method/skills/${name}/${posix(path.relative(dir, abs))}`;
+        const sourceRel = reverseMap.skillSourceFor(destRel, manifest);
+        if (!sourceRel) continue;
         diffSkillFile(abs, path.join(cacheDir, sourceRel), report);
       }
     }
