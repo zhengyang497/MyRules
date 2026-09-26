@@ -2,10 +2,17 @@
 //
 // 捕获决策引擎（spec §4 乐观并发）：对每个缓存源的全部部署拷贝分组判定——
 // - 干净（D === emitted(S)）：不动
-// - 缓存前进（hash(D) === baseline）：不动，部署照常更新
-// - 手改：仅当 baseline === hash(emitted(S))（手改基于当前缓存版本）且
+// - 缓存前进（captureBaseline === hash(D)）：不动，部署照常更新
+// - 手改：仅当粘性捕获基线 === hash(emitted(S))（手改基于当前缓存版本）且
 //   各平台候选正文一致时写回缓存源；否则冲突报告，文件保留，绝不覆盖。
 // 捕获让缓存变 dirty → 下次 sync 被 pull 闸门拦住，直到 push.js 发布。
+//
+// F1 粘性基线（state.captureBaselines，与 deployedHashes 分离）：
+// - 基线只在「部署真正写盘 / 盘上已等于产出 / 捕获成功后同轮部署写盘」时前进（drift.js 写入）；
+// - drift 拒写与捕获冲突【永不】推进它 → 被拒绝的捕获在此后每次 sync 继续被拒绝，
+//   除非 (a) 缓存源回到磁盘文件所派生的版本，或 (b) 磁盘文件不再是编辑（收敛/被覆盖）；
+// - 兼容：老 state 文件没有该字段时，一次性以 deployedHashes 播种（readState 缺席即播种）；
+//   字段已存在但缺某个 key → 视为无基线（保守拒绝，no-baseline 语义）。
 const fs = require('node:fs');
 const path = require('node:path');
 const fsutil = require('./fsutil');
@@ -14,6 +21,8 @@ const reverseMap = require('./reverse-map');
 function captureHandEdits(cacheDir, projectRoot, opts = {}) {
   const entries = reverseMap.buildReverseMap(cacheDir, projectRoot, opts);
   const priorHashes = opts.priorHashes || {};
+  // 字段缺席（老 state / state 丢失）→ 用 deployedHashes 播种一次；字段在 → 逐 key 粘性读取
+  const captureBaselines = opts.priorCaptureBaselines || { ...priorHashes };
   const captured = [];
   const conflicts = [];
 
@@ -34,7 +43,7 @@ function captureHandEdits(cacheDir, projectRoot, opts = {}) {
       const D = fs.readFileSync(m.abs, 'utf8');
       const E = reverseMap.emittedSource(m, S);
       if (D === E) continue;
-      const baseline = priorHashes[m.stateKey];
+      const baseline = captureBaselines[m.stateKey];
       if (baseline && baseline === fsutil.hashContent(D)) continue; // 缓存前进，部署会更新
       edited.push({ m, D, E });
     }
@@ -42,7 +51,7 @@ function captureHandEdits(cacheDir, projectRoot, opts = {}) {
 
     const candidates = [];
     for (const { m, D, E } of edited) {
-      const baseline = priorHashes[m.stateKey];
+      const baseline = captureBaselines[m.stateKey];
       if (!baseline || baseline !== fsutil.hashContent(E)) {
         conflicts.push({ abs: m.abs, sourceAbs, stateKey: m.stateKey, reason: baseline ? 'cache-moved' : 'no-baseline' });
         continue;
@@ -60,6 +69,8 @@ function captureHandEdits(cacheDir, projectRoot, opts = {}) {
     if (distinct.size === 1) {
       const source = [...distinct.keys()][0];
       fs.writeFileSync(sourceAbs, source);
+      // 捕获成功 (ii)：同轮随后的部署以新产出干净写盘 → drift.js 把这些 key 的
+      // 捕获基线前进到新产出哈希（round-trip 守卫保证写盘必然干净）。
       for (const c of candidates) {
         captured.push({ abs: c.m.abs, sourceAbs, stateKey: c.m.stateKey });
       }

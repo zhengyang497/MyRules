@@ -3,6 +3,10 @@ const fsutil = require('./fsutil');
 
 function createTracker({ force = false, priorHashes = {} } = {}) {
   const nextHashes = {};
+  // 捕获基线（F1 粘性基线）：只记录「本 tracker 真正写盘（或盘上已等于产出）」的内容哈希。
+  // drift 拒写路径【绝不】更新它 —— 否则 deployedHashes 会被 desired 污染，下一轮 sync
+  // 会把「被拒绝的过期手改」误判成基于当前缓存的改动而自愈捕获，覆盖别处推进的缓存内容。
+  const nextCaptureBaselines = {};
   const drifted = [];
   const written = [];
 
@@ -19,16 +23,17 @@ function createTracker({ force = false, priorHashes = {} } = {}) {
         if (currentHash !== baseline) {
           drifted.push(targetFile);
           nextHashes[stateKey] = desiredHash;
-          return;
+          return; // 注意：nextCaptureBaselines 不写 → 捕获基线在拒写时保持粘性（F1）
         }
       }
     }
     fs.writeFileSync(targetFile, content);
     nextHashes[stateKey] = desiredHash;
+    nextCaptureBaselines[stateKey] = desiredHash;
     written.push(targetFile);
   }
 
-  return { writeTracked, drifted, written, hashes: nextHashes };
+  return { writeTracked, drifted, written, hashes: nextHashes, captureBaselines: nextCaptureBaselines };
 }
 
 module.exports = { createTracker };

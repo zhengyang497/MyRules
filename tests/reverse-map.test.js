@@ -63,6 +63,35 @@ test('emittedSource and backfillSource round-trip: backfill(S, emitted(S)) === S
   }
 });
 
+// F3 性质：对任何通过前缀检查的 D（含以空白开头的 D），emitted(backfill(S, D)) === D。
+// 这是「捕获后 state 与磁盘对齐 + 幂等」的字节级根基（生成头后插入空行的编辑必须可往返）。
+test('property: emitted(backfill(S, D)) === D for whitespace-leading D (blank line after header, LF/CRLF)', () => {
+  const cache = makeCache();
+  const project = tmp('myrules-rmap-ws-');
+  const members = reverseMap.buildReverseMap(cache, project, mapOpts(project));
+  const cursor = members.find((m) => m.stateKey === '.cursor/rules/myrules-testing.mdc');
+  const body = members.find((m) => m.stateKey === '.claude/rules/myrules-testing.md');
+  assert.ok(cursor && body);
+
+  const variants = [
+    fs.readFileSync(cursor.sourceAbs, 'utf8'), // 无 frontmatter 源
+    '---\nagents: [implementer]\n---\n\n# Testing\n\n- v1', // LF frontmatter 源
+    '---\r\nagents: [implementer]\r\n---\r\n\r\n# Testing\r\n\r\n- v1', // CRLF frontmatter 源
+  ];
+  for (const S of variants) {
+    fs.writeFileSync(cursor.sourceAbs, S);
+    for (const m of [cursor, body]) {
+      const E = reverseMap.emittedSource(m, S);
+      // cursor 拷贝：生成头后插入空行；body 拷贝：正文顶部插入空行（D 以空白开头）
+      const D = m.emit === 'cursor' ? E.replace('---\n\n', '---\n\n\n') : `\n${E}`;
+      assert.notStrictEqual(D, E, 'fixture D must actually differ from E');
+      const r = reverseMap.backfillSource(m, S, D);
+      assert.strictEqual(r.ok, true, `backfill refused for ${m.stateKey}: ${JSON.stringify(S)}`);
+      assert.strictEqual(reverseMap.emittedSource(m, r.source), D, `emitted(backfill) !== D for ${m.stateKey}: ${JSON.stringify(S)}`);
+    }
+  }
+});
+
 test('backfillSource preserves rule source frontmatter and replaces body only', () => {
   const cache = makeCache();
   const project = tmp('myrules-rmap-fm-');

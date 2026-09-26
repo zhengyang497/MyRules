@@ -70,7 +70,8 @@ function deployRules(cacheDir, projectRoot, opts = {}) {
 
   const staleRemoved = staleRuleCleanup(priorHashes, tracker.hashes, projectRoot, claudeUserDir, opencodeUserDir, dshUserDir);
 
-  return { hashes: tracker.hashes, drifted: tracker.drifted, staleRemoved };
+  // captureBaselines：粘性捕获基线（只含本轮真正写盘的目标，drift 拒写的目标不在此）
+  return { hashes: tracker.hashes, drifted: tracker.drifted, staleRemoved, captureBaselines: tracker.captureBaselines };
 }
 
 module.exports = { deployRules, staleRuleCleanup, isRuleStateKey };

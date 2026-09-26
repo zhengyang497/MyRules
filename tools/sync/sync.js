@@ -103,7 +103,7 @@ function reportCaptures(projectRoot, result) {
   if (result.conflicts.length) {
     console.warn(`NOT captured: ${result.conflicts.length} hand edit(s) (kept as-is, never overwritten):`);
     for (const c of result.conflicts) {
-      console.warn(`  ${displayRel(projectRoot, c.abs)} -> ${CAPTURE_CONFLICT_TEXT[c.reason]}`);
+      console.warn(`  ${displayRel(projectRoot, c.abs)} -> ${CAPTURE_CONFLICT_TEXT[c.reason] || c.reason}`);
     }
   }
 }
@@ -162,17 +162,24 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
 
   // 捕获 pass（部署之前）：可反查的手改自动写回缓存源（spec capture-on-sync）。
   // --force 的既有语义是丢弃本地改动，与捕获互斥；--no-capture 退回「告警 + export」模式。
+  // captureConflicts：本轮被拒的文件集合，用于 F2 三档互斥 —— 冲突文件只在冲突档报告一次。
+  const captureConflicts = new Set();
   if (!opts.noCapture && !opts.force) {
     const captureResult = capture.captureHandEdits(cacheDir, projectRoot, {
       manifest,
       runtime,
       instanceLanding: runtimeLib.hasInstanceLanding(projectRoot),
       priorHashes: current.deployedHashes || {},
+      // F1 粘性捕获基线：与 deployedHashes 分离（drift 拒写不再污染捕获判定）
+      priorCaptureBaselines: current.captureBaselines,
       ...(opts.claudeUserDir ? { claudeUserDir: opts.claudeUserDir } : {}),
       ...(opts.opencodeUserDir ? { opencodeUserDir: opts.opencodeUserDir } : {}),
       dshUserDir: opts.dshUserDir || paths.getDshUserRulesDir(homeDir),
     });
     reportCaptures(projectRoot, captureResult);
+    for (const c of captureResult.conflicts) {
+      if (c.abs) captureConflicts.add(c.abs);
+    }
   }
 
   const result = deploy.deployRules(cacheDir, projectRoot, {
@@ -185,7 +192,9 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
     // dsh 用户目录按 homeDir 推导：测试传 fake homeDir 即可整体隔离
     dshUserDir: opts.dshUserDir || paths.getDshUserRulesDir(homeDir),
   });
-  reportDrifted('file(s)', result.drifted, projectRoot);
+  // F2 三档互斥：冲突文件已在冲突档报告过，drift 档不再重复列出（否则建议互相矛盾）；
+  // 非成员漂移（外来/未托管文件）照旧走 drift 档。skip 行为与哈希记账不受影响。
+  reportDrifted('file(s)', result.drifted.filter((f) => !captureConflicts.has(f)), projectRoot);
 
   const ocConfigResult = opencodeConfig.deployProjectConfig(cacheDir, projectRoot, {
     manifest,
@@ -225,7 +234,7 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
     runtime,
     instanceLanding: runtimeLib.hasInstanceLanding(projectRoot),
   });
-  reportDrifted('method file(s)', methodResult.drifted, projectRoot);
+  reportDrifted('method file(s)', methodResult.drifted.filter((f) => !captureConflicts.has(f)), projectRoot);
   if (methodResult.gapFilled && methodResult.gapFilled.length) {
     console.log(`Mirrored ${methodResult.gapFilled.length} missing instance-owned method file(s) from a sibling platform copy:`);
     methodResult.gapFilled.forEach((f) => console.log(`  ${f}`));
@@ -268,6 +277,8 @@ function syncOne(cacheDir, projectRoot, opts, manifest) {
     lastSyncAt: new Date().toISOString(),
     lastPruneAt,
     deployedHashes: { ...result.hashes, ...hooksResult.deployedHashes, ...methodResult.hashes },
+    // F1 粘性捕获基线：只把本轮真正写盘的 key 前移（drift 拒写/冲突的 key 由合并语义保持原值）
+    captureBaselines: { ...(current.captureBaselines || {}), ...result.captureBaselines, ...methodResult.captureBaselines },
     deployedAgentHashes: agentsResult.hashes,
     deployedHooks: hooksResult.deployedHooks,
     deployedOpencodeInstructions: {

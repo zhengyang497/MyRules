@@ -175,7 +175,8 @@ function deployMethod(cacheDir, projectRoot, opts = {}) {
   }
 
   const staleRemoved = staleMethodCleanup(priorHashes, tracker.hashes, projectRoot, preserveRels);
-  return { hashes: tracker.hashes, drifted: tracker.drifted, staleRemoved, dropped, gapFilled, preserveRels: [...preserveRels] };
+  // captureBaselines：粘性捕获基线（skills/method 成员由同一 tracker 写盘；drift 拒写的目标不在此）
+  return { hashes: tracker.hashes, drifted: tracker.drifted, staleRemoved, dropped, gapFilled, preserveRels: [...preserveRels], captureBaselines: tracker.captureBaselines };
 }
 
 module.exports = { deployMethod, entriesForRuntime, staleMethodCleanup, relIsPreserved, gapFillPreserve, preserveGroupsOf, contentForText };

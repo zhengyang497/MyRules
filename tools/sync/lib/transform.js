@@ -1,6 +1,11 @@
 // tools/sync/lib/transform.js
 
-const RULE_FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/;
+// 规则源 frontmatter 切分（F3）：头部正则额外消费「头部后紧跟的至多一个空行分隔符」，
+// 正文 = 其余原始字节（不再 trimStart）。这样 emitted = dstPrefix + 正文原字节，
+// backfill 时 D 只要通过前缀检查（含用户在生成头后多插的空行、CRLF 变体）就有
+// emitted(backfill(S, D)) === D，前缀不变式对任意 D 成立；普通源（头后恰好一个空行）
+// 的切分结果与旧 trimStart 版逐字节相同（tests/helpers 种子 59 个源全等，见 reverse-map 性质测试）。
+const RULE_FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n(\r?\n)?([\s\S]*)$/;
 
 function parseYamlListField(yamlBlock, key) {
   const match = yamlBlock.match(new RegExp(`^${key}:\\s*(.+)$`, 'm'));
@@ -22,7 +27,7 @@ function parseRuleFrontmatter(content) {
   }
   const agents = parseYamlListField(match[1], 'agents');
   const runtimes = parseYamlListField(match[1], 'runtimes');
-  return { agents, runtimes, body: match[2].trimStart() };
+  return { agents, runtimes, body: match[3] };
 }
 
 function stripRuleFrontmatter(content) {

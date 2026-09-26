@@ -6,7 +6,8 @@
 // 核心不变式（prefixesFor 保证，reverse-map.test.js 逐成员验证）：
 //   emittedSource(m, S) === dstPrefix + S.slice(srcPrefix.length)
 //   backfillSource(m, S, D) === S.slice(0, srcPrefix.length) + D.slice(dstPrefix.length)
-//   且 backfillSource(m, S, emittedSource(m, S)).source === S（round-trip 无损）
+//   且对任何通过前缀检查的 D（含以空白开头的 D，F3 性质测试）有
+//   emittedSource(m, backfillSource(m, S, D).source) === D（round-trip 无损）
 const fs = require('node:fs');
 const path = require('node:path');
 const transform = require('./transform');
@@ -89,7 +90,12 @@ function backfillSource(entry, sourceText, deployedText) {
   if (entry.backfill === 'bytes') return { ok: true, source: deployedText };
   const { src, dst } = prefixesFor(entry, sourceText);
   if (!deployedText.startsWith(dst)) return { ok: false, reason: 'header-edit' };
-  return { ok: true, source: sourceText.slice(0, src.length) + deployedText.slice(dst.length) };
+  const source = sourceText.slice(0, src.length) + deployedText.slice(dst.length);
+  // F3 round-trip 守卫：写回后的源必须逐字节再生 D（前缀不变式）。
+  // 若头/分隔层被改到无法往返（例如正文顶出新的 frontmatter 形态），按 header-edit 拒绝，
+  // 绝不写出一个会导致下轮 drift 循环的源 —— 拒绝方向永远安全（不覆盖、不漂移）。
+  if (emittedSource(entry, source) !== deployedText) return { ok: false, reason: 'header-edit' };
+  return { ok: true, source };
 }
 
 function methodMembers(cacheDir, projectRoot, opts) {
