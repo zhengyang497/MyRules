@@ -122,6 +122,21 @@ sync 的项目阶段（syncOne）在**部署 pass 之前**新增一个**捕获 p
    baseline 立即更新为新产出——两个项目先后改同一文件，只有先 sync 的那个
    能捕获；后 sync 的必然 `baseline != desired` 被拒。不可能来回覆盖。
 
+   > **补记（2026-09-26 终审修复 F1）**：上一段的推理有一个计划期盲点——它
+   > 从未在「冲突后的下一次 sync」上验证过。实现里 drift 拒写会把
+   > `state.deployedHashes[key]` 改写成 desired（缓存现产出哈希），于是第 2
+   > 次 sync 时 `baseline == desired` 恒成立，被拒的过期手改会自愈成捕获、
+   > 静默覆盖已前移的缓存内容（`cache-moved` 与 `no-baseline` 均受影响）。
+   > 修复：新增独立的**粘性捕获基线** `state.captureBaselines`（与
+   > deployedHashes 分离），只在「部署真正写盘 / 盘上已等于产出 / 捕获成功后
+   > 同轮部署写盘」时前进；drift 拒写与捕获冲突**永不**推进它。因此被拒的
+   > 捕获在此后每次 sync 继续被拒，直到 (a) 缓存源回到磁盘文件所派生的版本，
+   > 或 (b) 磁盘文件不再是编辑（收敛/被 --force 覆盖）。向后兼容：老 state
+   > 文件没有该字段时一次性从 `deployedHashes` 播种；字段存在但缺 key = 无
+   > 基线（保守拒绝，维持 `no-baseline` 语义）。覆盖测试见
+   > `tests/capture-sync.test.js`（cache-moved 二次 sync、no-baseline 二次
+   > sync、两项目交替双往返、header-edit 二次 sync）。
+
 同一次 `--all` run 内多项目：按 registry 顺序处理，先捕获者改写缓存源，后
 项目的同源改动自然落入第 3 条拒绝路径（baseline ≠ desired）。这是有意的：
 同一 run 内两个项目改同一文件 = 真冲突，必须人裁决。
@@ -218,3 +233,4 @@ Captured 2 edit(s) into ~/.myrules (run push.js to publish):
 | `export` 保留 | 预览与手动回流逃生阀；与 capture 共用映射层，无重复逻辑 |
 | `--no-capture` 逃生阀 | 极端场景（想让手改停在项目里不扩散）有退路 |
 | `--force` 跳过捕获 | `--force` 的既有语义是丢弃本地改动；捕获默认开启后二者互斥，`--force` = 明确要缓存版。`--no-capture` 才是「保留本地改动但不回流」的开关 |
+| **补记**：粘性捕获基线 `state.captureBaselines` | drift 拒写会把 deployedHashes 改写成 desired，导致被拒捕获在下轮 sync 自愈（F1）。捕获判定改用只随「真实写盘 / 盘上已等于产出 / 捕获成功」前进的粘性基线；拒绝持续到缓存回退或磁盘收敛。老 state 从 deployedHashes 播种一次 |
