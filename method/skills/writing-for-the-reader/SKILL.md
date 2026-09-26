@@ -19,3 +19,5 @@ description: Use when writing or rewriting text the user will read; when the use
 - 最后一句落到具体事实或下一步，不要再写一段复述全文。
 - 段落长短错开。不要每段都一个模子，也不要把一句拆成一串短句装气势。
 - 改别人的稿时，原来的结构和岔开能留就留；真要重排，说明为什么改。
+
+<!-- CAPTURE_E2E -->
